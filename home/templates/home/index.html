@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{%  load static %}
+
+{% block extra_css %}
+        <link rel= "stylesheet" href="{% static 'home/style.css'%}">
+{% endblock %}
+
+{% block content %}
+
+<div class="box">
+    <div class="title-container">
+        <div class = "title">HCAI project hub</div>
+    </div>
+
+    <div class="main-text">
+    <div class="summary" >
+        <p class="centered-text">This page serves as the central hub for student 
+        projects developed as part of the <strong>Human-Centric Artificial Intelligence</strong> 
+        course, by the following group:</p>
+    </div>
+    
+    <div class="students">
+        <ul class="student-list">
+            {% for student in students %}
+                <li class="student-item">
+                    <span class="student-name">{{ student.name }}</span> –
+                    <span class="student-id">{{ student.matriculation }}</span>
+                </li>
+            {% empty %}
+                <li>No students found.</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    
+    <div class="projects">
+        <h2 style="text-align: center;">Projects</h2>
+        <div class="button-container">
+            {% for project in projects %}
+                <form action="{% url project.url_name %}" method="get" style="margin-bottom: 10px;">
+                    {% csrf_token %}
+                    <button type="submit">{{ project.name }}</button>
+                </form>
+            {% endfor %}
+        </div>
+    </div>
+    
+
+</div>
+
+{% endblock %}
+
+{% block script %}
+{% endblock script %}

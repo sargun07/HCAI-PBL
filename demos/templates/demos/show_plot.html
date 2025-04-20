@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{%  load static %}
+
+
+{% block content %}
+
+<div class="box">
+    <div class="title-container">
+        <div class = "title">Display a plot</div>
+    </div>
+
+    <div class="main-text">
+        {% if image_url %}
+            <img src="{{ image_url }}" alt="Generated plot">
+        {% else %}
+            <p>No image to show.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+{% endblock script %}
