@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from django.conf import settings
 from django.shortcuts import render
 from .forms import CSVUploadForm
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 
 def index(request):
     return HttpResponse("Welcome to Project 1!")
@@ -52,15 +52,28 @@ def upload_csv(request):
     })
 
 
-
-def generate_plot(request):
-    filename = 'myplot.png'
+def save_plot(filename):
     image_path = os.path.join(settings.MEDIA_ROOT, filename)
     
     x = np.random.rand(10)
     y = np.random.rand(10)
+    plt.figure()
     plt.scatter(x, y)
     plt.savefig(image_path)
     
     image_url = settings.MEDIA_URL + filename
+    return image_url
+
+
+
+def generate_plot(request):
+    filename = 'myplot.png'
+    image_url = save_plot(filename)
     return render(request, 'demos/show_plot.html', {'image_url': image_url})
+
+
+def generate_plot_ajax(request):
+    if request.method == "POST":
+        filename = 'myplot.png'
+        image_url = save_plot(filename)
+        return JsonResponse({'image_url': image_url})

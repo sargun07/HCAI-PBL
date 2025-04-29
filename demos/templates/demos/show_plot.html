@@ -12,11 +12,31 @@
 
     <div class="main-text">
         {% if image_url %}
-            <img src="{{ image_url }}" alt="Generated plot">
+            <img src="{{ image_url }}" alt="Generated plot" id="generated-plot">
         {% else %}
             <p>No image to show.</p>
         {% endif %}
+        <br><br>
+        <button id="refresh-button">Generate new plot</button>
     </div>
+    
+    <script>
+        document.getElementById("refresh-button").addEventListener("click", function() {
+            fetch("{% url 'demos:generate_plot_ajax' %}", {
+                method: "POST",
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const img = document.getElementById("generated-plot");
+                img.src = data.image_url + '?t=' + new Date().getTime(); // bust cache
+            });
+        });
+    </script>
+    
 </div>
 
 {% endblock %}
