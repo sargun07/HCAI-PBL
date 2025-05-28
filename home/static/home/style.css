@@ -1,30 +1,172 @@
-.student-id {
-    font-family: monospace;
-    color: #555;
+/* Body and Background */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: url("/static/home/images/background_img.png") no-repeat center center fixed;
+    background-size: cover;
+    color: #fff;
+    overflow-x: hidden;
 }
 
+
+/* Hero section */
+.hero {
+    text-align: center;
+    padding: 60px 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.hero h1 {
+    font-size: 2.8em;
+    margin-bottom: 10px;
+}
+
+/* Tooltip for AI */
+.tooltip {
+    position: relative;
+    cursor: pointer; 
+    color: #0ff;
+}
+
+.tooltiptext {
+    visibility: hidden;
+    width: 180px;
+    background-color: #111;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -90px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Quote */
+.quote {
+    font-style: italic;
+    margin: 30px auto;
+    color: #9ae7f1;
+    font-size: 1.4em;
+    max-width: 800px;
+    text-align: center;
+}
+
+/* Student List */
 .student-list {
     list-style: none;
     padding: 0;
-    max-width: 500px;
-    margin: 0 auto;
-    background: #f9f9f9;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    margin: 30px auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .student-item {
-    padding: 10px 20px;
-    border-bottom: 1px solid #ddd;
-    font-size: 16px;
+    margin: 12px 0;
+    width: 400px;
+}
+
+.student-info {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 16px 25px;
+    border-radius: 10px;
+    transition: background-color 0.3s, transform 0.2s;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: center;
 }
 
-.student-item:last-child {
-    border-bottom: none;
+.student-info:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    transform: scale(1.03);
 }
 
-.centered-text {
+.student-name,
+.student-matriculation {
+    color: #ffffff;
+    font-size: 1.1em;
+    margin: 3px 0;
+}
+
+/* Projects Section */
+.projects {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 30px;
+    padding: 40px 60px;
+    margin-top: 50px;
+}
+
+.project-box {
+    padding: 25px 30px;
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid #0ff;
+    border-radius: 12px;
+    transition: transform 0.3s, background 0.3s;
+    cursor: pointer;
+    color: #fff;
+    font-size: 1.1em;
     text-align: center;
+}
+
+.project-box:hover {
+    background: rgba(0, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* Animated Floating Balls */
+.balls-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.ball {
+    position: absolute;
+    background: radial-gradient(circle, #0ff, transparent);
+    border-radius: 50%;
+    top: 100%;
+    animation: float 14s infinite ease-in-out;
+    opacity: 0.6;
+}
+
+.ball:nth-child(odd) {
+    width: 60px;
+    height: 60px;
+}
+
+.ball:nth-child(even) {
+    width: 40px;
+    height: 40px;
+}
+
+.ball.delay0 { left: 5%; animation-delay: 0s; }
+.ball.delay1 { left: 15%; animation-delay: 1s; }
+.ball.delay2 { left: 25%; animation-delay: 2s; }
+.ball.delay3 { left: 35%; animation-delay: 3s; }
+.ball.delay4 { left: 45%; animation-delay: 4s; }
+.ball.delay5 { left: 55%; animation-delay: 5s; }
+.ball.delay6 { left: 65%; animation-delay: 6s; }
+.ball.delay7 { left: 75%; animation-delay: 7s; }
+.ball.delay8 { left: 85%; animation-delay: 8s; }
+.ball.delay9 { left: 95%; animation-delay: 9s; }
+
+@keyframes float {
+    0%   { transform: translateY(0) scale(1); opacity: 0.4; }
+    50%  { transform: translateY(-800px) scale(1.2); opacity: 0.8; }
+    100% { transform: translateY(-1600px) scale(1); opacity: 0; }
 }

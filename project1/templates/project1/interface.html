@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'project1/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Project 1: Supervised Learning Interface</h1>
+
+<!-- Project Navigation -->
+<div class="project-nav">
+    <a href="{% url 'project1:index' %}" class="project-link">Project 1</a>
+    <a href="{% url 'project2:index' %}" class="project-link">Project 2</a>
+    <a href="{% url 'project3:index' %}" class="project-link">Project 3</a>
+    <a href="{% url 'project4:index' %}" class="project-link">Project 4</a>
+    <a href="{% url 'project5:index' %}" class="project-link">Project 5</a>
+</div>
+
+<!-- Main Dashboard Layout -->
+<div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar-nav" id="sidebar-nav" style="display: none;">
+        <button class="side-button" id="btn-show-form">Upload Form</button>
+        <button class="side-button" id="btn-show-visual">Data Visualization</button>
+        <button class="side-button" id="btn-show-ml">ML Model</button>
+    </div>
+
+    <!-- Right Content -->
+    <div class="dashboard-content">
+        <!-- Upload Section -->
+        <div class="upload-section" id="upload-section">
+            <h2>Upload CSV Dataset</h2>
+            <p class="form-note">Upload your dataset and optionally specify the target column (if it's not the last column).</p>
+
+            <form method="post" enctype="multipart/form-data" id="csv-upload-form" class="upload-form">
+                {% csrf_token %}
+                <div class="form-row">
+                    <label for="file">Select a CSV file:</label>
+                    {{ form.file }}
+                </div>
+
+                <div class="form-row">
+                    <label for="target-column">Target Column (name or index):</label>
+                    <input type="text" id="target-column" name="target_column" placeholder="Leave empty if it's the last column">
+                </div>
+
+                <div class="form-row center-buttons">
+                    <button type="submit" class="upload-button">Upload</button>
+                    <button type="button" id="loading-button" class="upload-button" style="display: none;" disabled>Loading...</button>
+                </div>
+            </form>
+            <div id="upload-result" class="form-note"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section" style="display: none;">
+            <div class="visual-flex-container">
+                <!-- Recommendation + Summary -->
+                <div class="visual-left">
+                    <div class="alert-box" id="model-recommendation"></div>
+                    <div class="summary-box">
+                        <h3>Dataset Summary</h3>
+                        <ul id="dataset-summary-list"></ul>
+                    </div>
+                </div>
+
+                <!-- Plots -->
+                <div class="visual-right">
+                    <h3 style="text-align:center;">Visualizations</h3>
+                    <div id="plot-buttons" class="plot-button-container"></div>
+                    <div id="active-plot" class="active-plot"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ML Section -->
+        <div id="ml-section" style="display: none;">
+            <h3>ML Model Implementation</h3>
+
+            <form id="ml-form" class="ml-form">
+                <div class="form-row">
+                    <label for="ml-type">Select ML Type:</label>
+                    <select id="ml-type" name="ml_type">
+                        <option value="classification">Classification</option>
+                        <option value="regression">Regression</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label for="ml-model">Select Model:</label>
+                    <select id="ml-model" name="ml_model">
+                        <!-- JS will populate -->
+                    </select>
+                </div>
+
+                <div class="form-row" id="hyperparameter-container">
+                    <!-- JS will populate hyperparams -->
+                </div>
+
+                <div class="form-row">
+                    <button type="submit" class="upload-button">Train Model</button>
+                </div>
+            </form>
+
+            <div class="model-results" id="ml-results" style="display: none;">
+                <h4>Model Results</h4>
+                <p><strong>Accuracy / Score:</strong> <span id="model-score"></span></p>
+                <div id="model-plot" style="margin-top: 20px;"></div>
+
+                <!-- Prediction Console -->
+                <div class="console-box" style="margin-top: 30px;">
+                    <h4>Make a Prediction</h4>
+                    <form id="predict-form">
+                        <textarea id="predict-input" rows="3" placeholder="Enter input values (e.g., 4.5, 2.3, 1.4, 0.2)"></textarea>
+                        <button type="submit" class="upload-button">Predict</button>
+                    </form>
+                    <div id="predict-output" class="console-output"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("csv-upload-form");
+        const uploadSection = document.getElementById("upload-section");
+        const loadingButton = document.getElementById("loading-button");
+        const uploadButton = form.querySelector(".upload-button");
+        const result = document.getElementById("upload-result");
+
+        const resultsSection = document.getElementById("results-section");
+        const recommendationBox = document.getElementById("model-recommendation");
+        const summaryList = document.getElementById("dataset-summary-list");
+        const plotButtons = document.getElementById("plot-buttons");
+        const activePlot = document.getElementById("active-plot");
+
+        const mlSection = document.getElementById("ml-section");
+
+        function hideAllSections() {
+            uploadSection.style.display = "none";
+            resultsSection.style.display = "none";
+            mlSection.style.display = "none";
+        }
+
+        document.getElementById("btn-show-form").addEventListener("click", function () {
+            hideAllSections();
+            uploadSection.style.display = "block";
+        });
+
+        document.getElementById("btn-show-visual").addEventListener("click", function () {
+            hideAllSections();
+            resultsSection.style.display = "block";
+        });
+
+        document.getElementById("btn-show-ml").addEventListener("click", function () {
+            hideAllSections();
+            mlSection.style.display = "block";
+        });
+
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            uploadButton.style.display = "none";
+            loadingButton.style.display = "inline-block";
+
+            const formData = new FormData(form);
+
+            fetch("", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": form.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                uploadButton.style.display = "inline-block";
+                loadingButton.style.display = "none";
+
+                if (data.success) {
+                    hideAllSections();
+                    resultsSection.style.display = "block";
+
+                    document.getElementById("sidebar-nav").style.display = "flex";
+
+                    recommendationBox.textContent = "Recommended ML Strategy: " + data.recommendation;
+
+                    summaryList.innerHTML = "";
+                    data.summary.forEach(item => {
+                        const li = document.createElement("li");
+                        li.innerHTML = item;
+                        summaryList.appendChild(li);
+                    });
+
+                    plotButtons.innerHTML = "";
+                    activePlot.innerHTML = "";
+
+                    let first = true;
+                    for (const [title, imageStr] of Object.entries(data.plots)) {
+                        const button = document.createElement("button");
+                        button.className = "plot-toggle-button";
+                        button.textContent = title;
+                        button.addEventListener("click", () => {
+                            activePlot.innerHTML = `
+                    
+                                <img src="data:image/png;base64,${imageStr}" alt="${title}" style="max-width:100%; border: 1px solid #ccc; border-radius: 8px;" />
+                            `;
+                        });
+                        plotButtons.appendChild(button);
+                        // Show the first plot by default
+                        if (first) {
+                             activePlot.innerHTML = `
+                            
+                        <img src="data:image/png;base64,${imageStr}" alt="${title}" style="max-width:100%; border: 1px solid #ccc; border-radius: 8px;" />
+                            `;
+                    first = false;
+                        }
+                    }
+                } else {
+                    result.textContent = data.error;
+                    result.style.color = "red";
+                    uploadButton.style.display = "inline-block";
+                    loadingButton.style.display = "none";
+                }
+            })
+            .catch(error => {
+                result.textContent = "Upload failed.";
+                result.style.color = "red";
+                console.error("Error:", error);
+                uploadButton.style.display = "inline-block";
+                loadingButton.style.display = "none";
+            });
+        });
+    });
+</script>
+{% endblock %}
