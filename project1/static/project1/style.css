@@ -1,0 +1,369 @@
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: url("/static/home/images/background_img.png") no-repeat center center fixed;
+    background-size: cover;
+    color: #fff;
+    overflow-x: hidden;
+}
+
+/* Upload Section Styling */
+.upload-section {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 30px 40px;
+    border-radius: 12px;
+    margin: 40px auto;
+    max-width: 600px;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+    text-align: left;
+}
+
+.upload-section h2 {
+    text-align: center;
+    color: #0ff;
+    margin-bottom: 20px;
+}
+.upload-form input[type="text"]::placeholder {
+    color: #aaa;
+    font-size: 0.95em;  /* adjust if needed */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.form-note {
+    color: #ccc;
+    font-size: 0.95em;
+    margin-bottom: 15px;
+}
+
+/* Upload Form Structure */
+.upload-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Flex row to align label and input */
+.form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* Labels beside inputs */
+.form-row label {
+    min-width: 180px;
+    font-weight: 500;
+}
+
+/* Inputs */
+.upload-form input[type="file"],
+.upload-form input[type="text"] {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+    font-size: 1em;
+}
+
+.upload-form input[type="text"] {
+    background-color: rgba(255, 255, 255, 0.07);
+    color: #fff;
+}
+
+.upload-form input[type="text"]::placeholder {
+    color: #aaa;
+}
+
+/* Upload button */
+.upload-button {
+    background-color: #0ff;
+    border: none;
+    color: #000;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.upload-button:hover {
+    background-color: #00d4d4;
+}
+
+.alert-box {
+    background-color: #003344;
+    color: #00ffee;
+    padding: 15px 20px;
+    border-left: 5px solid #0ff;
+    border-radius: 5px;
+    font-size: 1.1em;
+    margin-bottom: 20px;
+}
+
+.summary-box {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    font-size: 1em;
+    color: #eee;
+}
+
+.plot-gallery h3 {
+    color: #0ff;
+    margin-top: 30px;
+}
+
+
+/* Dataset Summary */
+.summary-box ul {
+    padding-left: 20px;
+    margin-top: 10px;
+}
+
+.summary-box li {
+    margin-bottom: 8px;
+    font-size: 0.95em;
+    color: #ccc;
+}
+
+/* Plot Button Styles */
+.plot-button-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.plot-toggle-button {
+    background-color: #0ff;
+    color: #000;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-weight: 500;
+}
+
+.plot-toggle-button:hover {
+    background-color: #00cccc;
+}
+
+.active-plot img {
+    margin-top: 15px;
+    border-radius: 8px;
+}
+
+.nav-button {
+    background-color: #0ff;
+    border: none;
+    color: #000;
+    padding: 10px 20px;
+    margin: 0 10px;
+    font-size: 1em;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.nav-button:hover {
+    background-color: #00cccc;
+}
+
+.ml-form {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 600px;
+}
+
+.ml-form .form-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.ml-form select, .ml-form input[type="text"] {
+    padding: 10px;
+    width: 100%;
+    border-radius: 6px;
+    border: none;
+    font-size: 1em;
+    background-color: rgba(255, 255, 255, 0.07);
+    color: #fff;
+}
+
+.console-box textarea {
+    width: 100%;
+    padding: 10px;
+    background-color: #111;
+    color: #0ff;
+    font-family: monospace;
+    border: 1px solid #0ff;
+    border-radius: 6px;
+}
+
+.console-output {
+    margin-top: 10px;
+    background-color: #111;
+    padding: 10px;
+    border-radius: 6px;
+    color: #0ff;
+    font-family: monospace;
+    white-space: pre-line;
+    border: 1px solid #0ff;
+}
+
+.model-results img {
+    max-width: 100%;
+    border-radius: 6px;
+    border: 1px solid #555;
+}
+
+/* Flex container for visualization section */
+.visual-flex-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 30px;
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+}
+
+/* Left side: recommendation + summary */
+.visual-left {
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+}
+
+/* Right side: plots */
+.visual-right {
+    flex: 2;
+    min-width: 400px;
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+}
+
+/* Plot gallery display */
+.plot-button-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.plot-toggle-button {
+    background-color: #0ff;
+    border: none;
+    color: #000;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.plot-toggle-button:hover {
+    background-color: #00cccc;
+}
+
+.active-plot {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.active-plot img {
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid #555;
+    background-color: #111;
+    padding: 10px;
+}
+
+.page-title {
+    text-align: center;
+    color: #0ff;
+    font-size: 2.2em;
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+
+.project-nav {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.project-link {
+    background-color: #0ff;
+    color: #000;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.project-link:hover {
+    background-color: #00cccc;
+}
+
+.center-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.dashboard-container {
+    display: flex;
+    margin-top: 30px;
+}
+
+/* Sidebar */
+.sidebar-nav {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 10px 0 0 10px;
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.side-button {
+    background-color: #0ff;
+    color: #000;
+    border: none;
+    padding: 12px 16px;
+    font-size: 1em;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.3s;
+}
+
+.side-button:hover {
+    background-color: #00cccc;
+}
+
+/* Main content next to sidebar */
+.dashboard-content {
+    flex: 1;
+    padding: 30px 40px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: 0 10px 10px 0;
+    min-height: 500px;
+}
+
