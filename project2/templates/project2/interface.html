@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'project1/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Project 2: Active Learning for Text Classification</h1>
+
+<!-- Project Navigation -->
+<div class="project-nav">
+    <a href="{% url 'project1:index' %}" class="project-link">Project 1</a>
+    <a href="{% url 'project2:index' %}" class="project-link">Project 2</a>
+    <a href="{% url 'project3:index' %}" class="project-link">Project 3</a>
+    <a href="{% url 'project4:index' %}" class="project-link">Project 4</a>
+    <a href="{% url 'project5:index' %}" class="project-link">Project 5</a>
+</div>
+
+<!-- Main Dashboard Layout -->
+<div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar-nav" id="sidebar-nav">
+        <button class="side-button active-tab" id="btn-show-form">Build Classifier</button>
+        <button class="side-button" id="btn-show-visual">Active Learning Mode</button>
+    </div>
+
+    <!-- Right Content -->
+    <div class="dashboard-content">
+        <!-- Build Classifier Section -->
+
+        <div id="build-classifier-section">
+            <h2 style="text-align:center;">Train a Classifier on Full Dataset</h2>
+            <p style="text-align:center;">Use labeled data to train a supervised model. Accuracy will be used as a reference for active learning.</p>
+
+        <div class="center-buttons">
+            <button id="btn-show-summary" class="upload-button">Show Dataset Summary</button>
+            <button id="btn-show-results" class="upload-button">Show Accuracy Results</button>
+        </div>
+
+        <!-- Dataset Summary -->
+        <div id="data-summary" style="margin-top: 30px;">
+        <!-- Fills via Jinja or AJAX -->
+            <ul>
+                <li>Total Reviews: {{ total_reviews }}</li>
+                <li>Positive Reviews: {{ num_pos }}</li>
+                <li>Negative Reviews: {{ num_neg }}</li>
+            </ul>
+
+        <table border="1" cellpadding="8" style="margin-top: 20px; width: 100%;">
+            <tr>
+                <th>Review</th>
+                <th>Sentiment</th>
+            </tr>
+            {% for row in sample_reviews %}
+            <tr>
+                <td>{{ row.review|truncatewords:30 }}</td>
+                <td>{{ row.sentiment }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        </div>
+
+    <!-- Accuracy + Plot -->
+        <div id="accuracy-results" style="display:none; margin-top: 30px;">
+            <p><strong>Accuracy Score:</strong> {{ accuracy_score }} </p>
+            <div id="confusion-matrix-plot">
+                {% if plot %}
+                    <img src="data:image/png;base64,{{ plot }}" style="max-width: 100%; border-radius: 6px;" />
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+
+        <!-- Active Learning Section -->
+        <div id="active-learning-section" style="display: none;">
+            <h2 style="text-align:center;">Run Active Learning</h2>
+            <p style="text-align:center;">Start querying samples intelligently and build the model with fewer labeled examples.</p>
+            <!-- Add your active learning options and interactive tools here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const btnForm = document.getElementById("btn-show-form");
+        const btnVisual = document.getElementById("btn-show-visual");
+        const sectionForm = document.getElementById("build-classifier-section");
+        const sectionVisual = document.getElementById("active-learning-section");
+
+        function clearActive() {
+            btnForm.classList.remove("active-tab");
+            btnVisual.classList.remove("active-tab");
+            sectionForm.style.display = "none";
+            sectionVisual.style.display = "none";
+        }
+
+        btnForm.addEventListener("click", function () {
+            clearActive();
+            btnForm.classList.add("active-tab");
+            sectionForm.style.display = "block";
+        });
+
+        btnVisual.addEventListener("click", function () {
+            clearActive();
+            btnVisual.classList.add("active-tab");
+            sectionVisual.style.display = "block";
+        });
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const btnSummary = document.getElementById("btn-show-summary");
+        const btnResults = document.getElementById("btn-show-results");
+
+        const summaryDiv = document.getElementById("data-summary");
+        const resultsDiv = document.getElementById("accuracy-results");
+
+        btnSummary.addEventListener("click", () => {
+            summaryDiv.style.display = "block";
+            resultsDiv.style.display = "none";
+        });
+
+        btnResults.addEventListener("click", () => {
+            summaryDiv.style.display = "none";
+            resultsDiv.style.display = "block";
+        });
+    });
+</script>
+{% endblock %}
