@@ -99,8 +99,21 @@
                 </div>
 
                 <div class="form-row">
-                    <button type="submit" class="upload-button">Train Model</button>
+                    <button type="button" class="upload-button" id="btn-select-hyperparams">Select Hyperparameters</button>
                 </div>
+
+                <!-- Hyperparameter form section (initially hidden) -->
+                <div id="hyperparam-form-section" style="display: none; margin-top: 30px;">
+                    <h4>Select Hyperparameters</h4>
+                    <div id="hyperparam-form" class="ml-form">
+                        <!-- JS will populate -->
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <button type="button" class="upload-button" id="btn-train-model">Train Model</button>
+                    </div>
+                </div>
+
             </form>
 
             <div class="model-results" id="ml-results" style="display: none;">
@@ -139,6 +152,103 @@
         const activePlot = document.getElementById("active-plot");
 
         const mlSection = document.getElementById("ml-section");
+
+        const mlTypeSelect = document.getElementById("ml-type");
+        const mlModelSelect = document.getElementById("ml-model");
+
+        const btnSelectParams = document.getElementById("btn-select-hyperparams");
+        const paramSection = document.getElementById("hyperparam-form-section");
+        const paramForm = document.getElementById("hyperparam-form");
+
+        const modelHyperparams = {
+            logistic_regression: {
+                C: 1.0,
+                max_iter: 100,
+                penalty: "l2"
+            },
+            svm: {
+                C: 1.0,
+                max_iter: 1000
+            },
+            random_forest_classifier: {
+                n_estimators: 100,
+                max_depth: 10,
+                criterion: "gini"
+            }
+        };
+
+        const classificationModels = [
+            { value: "logistic_regression", text: "Logistic Regression" },
+            { value: "svm", text: "Support Vector Machine (SVM)" },
+            { value: "random_forest_classifier", text: "Random Forest Classifier" }
+        ];
+
+        const regressionModels = [
+            { value: "linear_regression", text: "Linear Regression" },
+            { value: "random_forest_regressor", text: "Random Forest Regressor" },
+            { value: "gradient_boosting_regressor", text: "Gradient Boosting Regressor" }
+        ];
+
+        function populateModelOptions(models) {
+            mlModelSelect.innerHTML = ""; // Clear existing
+            models.forEach(model => {
+                const option = document.createElement("option");
+                option.value = model.value;
+                option.textContent = model.text;
+                mlModelSelect.appendChild(option);
+            });
+        }
+
+        if (mlTypeSelect.value === "classification") {
+            populateModelOptions(classificationModels);
+        } else {
+            populateModelOptions(regressionModels);
+        }
+
+        mlTypeSelect.addEventListener("change", function () {
+            if (mlTypeSelect.value === "classification") {
+                populateModelOptions(classificationModels);
+            } else if (mlTypeSelect.value === "regression") {
+                populateModelOptions(regressionModels);
+            }
+        });
+
+        // Show hyperparameter form
+        btnSelectParams.addEventListener("click", function () {
+            const selectedModel = mlModelSelect.value;
+            const params = modelHyperparams[selectedModel];
+
+            if (!params) {
+                alert("No hyperparameters found for selected model.");
+                return;
+            }
+
+            paramSection.style.display = "block";
+
+            // Clear existing form
+            paramForm.innerHTML = "";
+
+            for (const [key, value] of Object.entries(params)) {
+                const label = document.createElement("label");
+                label.textContent = key;
+
+                const input = document.createElement("input");
+                input.type = "text";
+                input.name = key;
+                input.value = value;
+
+                const wrapper = document.createElement("div");
+                wrapper.className = "form-row";
+                wrapper.appendChild(label);
+                wrapper.appendChild(input);
+
+                paramForm.appendChild(wrapper);
+            }
+
+            paramSection.style.display = "block";
+            trainingConsole.style.display = "none";
+            appendToConsole("Hyperparameters loaded for: " + selectedModel);
+        });
 
         function hideAllSections() {
             uploadSection.style.display = "none";
