@@ -61,26 +61,85 @@
         </table>
         </div>
 
-    <!-- Accuracy + Plot -->
-        <div id="accuracy-results" style="display:none; margin-top: 30px;">
-            <p><strong>Accuracy Score:</strong> {{ accuracy_score }} </p>
-            <div id="confusion-matrix-plot">
-                {% if plot %}
-                    <img src="data:image/png;base64,{{ plot }}" style="max-width: 100%; border-radius: 6px;" />
-                {% endif %}
+            <!-- Accuracy Results -->
+        <div id="accuracy-results" style="display: none; margin-top: 30px;">
+    <h3 style="color: #0ff; text-align: center; margin-bottom: 20px;">Model Evaluation Results</h3>
+
+    <!-- Accuracy Score -->
+    <p style="text-align: center; font-size: 1.2em;">
+        <strong>Accuracy Score:</strong> {{ accuracy }}
+    </p>
+
+    <!-- Flex container for matrix and report -->
+    <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 40px; margin-top: 20px;">
+
+        <!-- Confusion Matrix -->
+        <div style="flex: 1; min-width: 300px;">
+            <h4 style="color: #0ff; text-align: center;">Confusion Matrix</h4>
+            <table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; background-color: #111; color: #0ff; margin: auto;">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Predicted: Negative</th>
+                        <th>Predicted: Positive</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>Actual: Negative</th>
+                        <td>{{ confusion_matrix.0.0 }}</td>
+                        <td>{{ confusion_matrix.0.1 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Actual: Positive</th>
+                        <td>{{ confusion_matrix.1.0 }}</td>
+                        <td>{{ confusion_matrix.1.1 }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Classification Report -->
+        <div style="flex: 1; min-width: 300px;">
+            <h4 style="color: #0ff; text-align: center;">Classification Report</h4>
+            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; background-color: #111; color: #0ff; margin: auto;">
+                <thead>
+                    <tr>
+                        <th>Label</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1-Score</th>
+                        <th>Support</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for label, metrics in report.items %}
+                        {% if label != 'accuracy' %}
+                            <tr>
+                                <td>{{ label }}</td>
+                                {% for metric_label, metric_value in metrics.items %}
+                                    <td>{{ metric_value|floatformat:4}}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div> <!-- flex container end -->
+</div>
+            </div>
+
+
+            <!-- Active Learning Section -->
+            <div id="active-learning-section" style="display: none;">
+                <h2 style="text-align:center;">Run Active Learning</h2>
+                <p style="text-align:center;">Start querying samples intelligently and build the model with fewer labeled examples.</p>
+                <!-- Add your active learning options and interactive tools here -->
             </div>
         </div>
-    </div>
-
-
-        <!-- Active Learning Section -->
-        <div id="active-learning-section" style="display: none;">
-            <h2 style="text-align:center;">Run Active Learning</h2>
-            <p style="text-align:center;">Start querying samples intelligently and build the model with fewer labeled examples.</p>
-            <!-- Add your active learning options and interactive tools here -->
         </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block script %}

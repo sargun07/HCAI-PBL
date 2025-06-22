@@ -6,6 +6,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from nltk import pos_tag
 import os
+import pickle
 
 nltk.download('punkt')
 nltk.download('stopwords')
@@ -26,7 +27,6 @@ class IMDBDataLoader:
         self.df = None
 
     def load_data(self):
-        import pandas as pd
         self.df = pd.read_csv(self.filepath)
         return self.df
 
@@ -79,13 +79,17 @@ class IMDBDataLoader:
 
 
 class SVMTextClassifier:
-    def __init__(self):
-        self.vectorizer = TfidfVectorizer(max_features=5000)
-        self.model = LinearSVC()
-        self.label_encoder = LabelEncoder()
+    def __init__(self, model=None, vectorizer=None, label_encoder=None):
+        self.model = model if model else LinearSVC()
+        self.vectorizer = vectorizer if vectorizer else TfidfVectorizer(max_features=5000)
+        self.label_encoder = label_encoder if label_encoder else LabelEncoder()
+
         self.X_test = None
         self.y_test = None
         self.y_pred = None
+        self.accuracy = None
+        self.confusion_matrix_ = None
+        self.report = None
 
     def train(self, df):
 
@@ -108,24 +112,46 @@ class SVMTextClassifier:
         if model is None or X_test is None or y_test is None:
             raise ValueError("Model and test data must be provided or trained before evaluation.")
 
-        y_pred = model.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
-        report = classification_report(y_test, y_pred, target_names=self.label_encoder.classes_)
-        matrix = confusion_matrix(y_test, y_pred)
+        self.y_pred = model.predict(X_test)
+        self.accuracy = accuracy_score(self.y_test, self.y_pred)
+        self.confusion_matrix_ = confusion_matrix(self.y_test, self.y_pred)
+        self.report = classification_report(
+            self.y_test, self.y_pred, target_names=self.label_encoder.classes_, output_dict=True
+        )
 
         return {
-            "accuracy": accuracy,
-            "report": report,
-            "confusion_matrix": matrix,
+            "accuracy": self.accuracy,
+            "confusion_matrix": self.confusion_matrix_,
+            "report": self.report
         }
 
-    def save_model(self, path='Media/processed/project2/svm_model.pkl'):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+    def save_model(self, path):
         with open(path, 'wb') as f:
             pickle.dump({
                 'model': self.model,
                 'vectorizer': self.vectorizer,
-                'label_encoder': self.label_encoder
+                'label_encoder': self.label_encoder,
+                'accuracy': self.accuracy,
+                'confusion_matrix': self.confusion_matrix_,
+                'report': self.report
             }, f)
+
+    @classmethod
+    def load(cls, path):
+        with open(path, 'rb') as f:
+            data = pickle.load(f)
+
+        instance = cls(
+            model=data['model'],
+            vectorizer=data['vectorizer'],
+            label_encoder=data['label_encoder']
+        )
+
+        # Restore results
+        instance.accuracy = data.get('accuracy')
+        instance.confusion_matrix_ = data.get('confusion_matrix')
+        instance.report = data.get('report')
+
+        return instance
 
         
