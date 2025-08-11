@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'project5/style.css' %}">
+<style>
+  /* Minimal styling so it works even if style.css is empty. Move to style.css later. */
+  .controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(5, 56px);
+    grid-template-rows: repeat(5, 56px);
+    gap: 4px;
+    user-select: none;
+  }
+  .cell {
+    width: 56px; height: 56px; border: 1px solid #ccc; display:flex;
+    align-items:center; justify-content:center; font-size: 26px; cursor: pointer;
+  }
+  .legend { margin-top: 1rem; }
+  .legend div { display: inline-flex; align-items: center; gap: .35rem; margin-right: .75rem; }
+  pre#json-out { margin-top: 1rem; background: #111; color:#0f0; padding: .75rem; max-height: 200px; overflow:auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="controls">
+  <label>Tool:
+    <select id="tool">
+      <option value="mouse">Mouse 🐭</option>
+      <option value="wall">Wall 🧱</option>
+      <option value="trap">Trap ☠️</option>
+      <option value="cheese">Cheese 🧀</option>
+      <option value="organic">Organic 🥦</option>
+      <option value="empty">Eraser ␡</option>
+    </select>
+  </label>
+
+  <span>| Randomize counts:</span>
+  <label>Walls <input id="rand-walls" type="number" min="0" value="3" style="width:4rem"></label>
+  <label>Traps <input id="rand-traps" type="number" min="0" value="2" style="width:4rem"></label>
+  <label>Cheese <input id="rand-cheese" type="number" min="0" value="2" style="width:4rem"></label>
+  <label>Organic <input id="rand-organic" type="number" min="0" value="2" style="width:4rem"></label>
+
+  <button id="randomize">Randomize</button>
+  <button id="clear">Clear</button>
+  <button id="export">Export JSON</button>
+  <label style="margin-left:.5rem">Import <input id="import" type="file" accept="application/json"></label>
+  <button id="saveToServer">Save to server</button>
+</div>
+
+<div id="grid" class="grid"></div>
+
+<div class="legend">
+  <strong>Legend:</strong>
+  <div>🐭 Mouse</div>
+  <div>🧱 Wall</div>
+  <div>☠️ Trap</div>
+  <div>🧀 Cheese</div>
+  <div>🥦 Organic</div>
+  <div>␡ Empty</div>
+</div>
+
+<pre id="json-out" hidden></pre>
+{% endblock %}
+
+{% block script %}
+<script>
+(() => {
+  const SIZE = 5;
+
+  const ELEMENTS = {
+    empty:   { code: 0, icon: ''   },
+    mouse:   { code: 1, icon: '🐭' },
+    wall:    { code: 2, icon: '🧱' },
+    trap:    { code: 3, icon: '☠️' },
+    cheese:  { code: 4, icon: '🧀' },
+    organic: { code: 5, icon: '🥦' }
+  };
+  const CODE_TO_KEY = Object.entries(ELEMENTS).reduce((acc, [k, v]) => (acc[v.code] = k, acc), {});
+  const ONE_MOUSE = true; // enforce a single mouse
+
+  const toolEl = document.getElementById('tool');
+  const gridEl = document.getElementById('grid');
+  const jsonOutEl = document.getElementById('json-out');
+
+  const randWallsEl    = document.getElementById('rand-walls');
+  const randTrapsEl    = document.getElementById('rand-traps');
+  const randCheeseEl   = document.getElementById('rand-cheese');
+  const randOrganicEl  = document.getElementById('rand-organic');
+
+  const randomizeBtn   = document.getElementById('randomize');
+  const clearBtn       = document.getElementById('clear');
+  const exportBtn      = document.getElementById('export');
+  const importInput    = document.getElementById('import');
+  const saveBtn        = document.getElementById('saveToServer');
+
+  // 2D state (rows x cols) holding ELEMENTS keys ("empty" | "mouse" | ...)
+  let state = makeEmptyState();
+
+  init();
+
+  // ---- functions ----
+  function init() {
+    renderGrid();
+    attachHandlers();
+  }
+
+  function makeEmptyState() {
+    return Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => 'empty'));
+  }
+
+  function renderGrid() {
+    gridEl.innerHTML = '';
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.row = r;
+        cell.dataset.col = c;
+        cell.textContent = ELEMENTS[state[r][c]].icon;
+        gridEl.appendChild(cell);
+      }
+    }
+  }
+
+  function attachHandlers() {
+    gridEl.addEventListener('click', onCellClick);
+    randomizeBtn.addEventListener('click', onRandomize);
+    clearBtn.addEventListener('click', clearGrid);
+    exportBtn.addEventListener('click', exportJSON);
+    importInput.addEventListener('change', importJSON);
+    saveBtn.addEventListener('click', saveToServer);
+  }
+
+  function onCellClick(e) {
+    const cell = e.target.closest('.cell');
+    if (!cell) return;
+    const r = +cell.dataset.row;
+    const c = +cell.dataset.col;
+    const tool = toolEl.value;
+
+    if (ONE_MOUSE && tool === 'mouse') {
+      removeAll('mouse');
+    }
+    state[r][c] = tool;
+    renderGrid();
+  }
+
+  function removeAll(elementKey) {
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (state[r][c] === elementKey) state[r][c] = 'empty';
+      }
+    }
+  }
+
+  function onRandomize() {
+    // reset
+    state = makeEmptyState();
+
+    const counts = {
+      walls: parseInt(randWallsEl.value, 10) || 0,
+      traps: parseInt(randTrapsEl.value, 10) || 0,
+      cheese: parseInt(randCheeseEl.value, 10) || 0,
+      organic: parseInt(randOrganicEl.value, 10) || 0,
+    };
+
+    // place 1 mouse
+    placeRandom('mouse', 1);
+
+    placeRandom('wall', counts.walls);
+    placeRandom('trap', counts.traps);
+    placeRandom('cheese', counts.cheese);
+    placeRandom('organic', counts.organic);
+
+    renderGrid();
+  }
+
+  function placeRandom(key, n) {
+    const free = [];
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (state[r][c] === 'empty') free.push([r, c]);
+      }
+    }
+    shuffle(free);
+    for (let i = 0; i < n && i < free.length; i++) {
+      const [r, c] = free[i];
+      state[r][c] = key;
+    }
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  function clearGrid() {
+    state = makeEmptyState();
+    renderGrid();
+  }
+
+  function exportJSON() {
+    const payload = {
+      size: SIZE,
+      grid: state.map(row => row.map(k => ELEMENTS[k].code))
+    };
+    const txt = JSON.stringify(payload, null, 2);
+    jsonOutEl.hidden = false;
+    jsonOutEl.textContent = txt;
+
+    const blob = new Blob([txt], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'grid_layout.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importJSON(ev) {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const payload = JSON.parse(e.target.result);
+        if (!payload.size || !payload.grid) throw new Error('Invalid layout file.');
+        if (payload.size !== SIZE) throw new Error(`Expected size ${SIZE}x${SIZE}, got ${payload.size}`);
+        state = payload.grid.map(row => row.map(code => CODE_TO_KEY[code] ?? 'empty'));
+        renderGrid();
+      } catch (err) {
+        alert(err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  async function saveToServer() {
+    // Adjust the URL to your Django view (e.g., project5:save_layout)
+    const url = "{% url 'project5:save_layout' %}";
+    const payload = {
+      size: SIZE,
+      grid: state.map(row => row.map(k => ELEMENTS[k].code)),
+    };
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) throw new Error('Server error');
+      const data = await resp.json();
+      alert('Saved! ID=' + data.id);
+    } catch (e) {
+      console.error(e);
+      alert('Save failed (check console). If you haven\'t created the Django view yet, you can ignore this.');
+    }
+  }
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+  }
+})();
+</script>
+{% endblock %}

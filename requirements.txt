@@ -3,3 +3,4 @@ numpy>=1.24
 matplotlib>=3.7
 pandas==2.2.2
 seaborn >= 0.12.2
+gosdt==0.1.1
