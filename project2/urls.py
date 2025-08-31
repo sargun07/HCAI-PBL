@@ -14,5 +14,5 @@ urlpatterns = [
     path('al/human/next', views.al_human_next, name='al_human_next'),
     path('al/human/label', views.al_human_label, name='al_human_label'),
     path('al/human/reset', views.al_human_reset, name='al_human_reset'),
-
+    path('preprocess', views.preprocess_dataset, name='preprocess_dataset'),
 ]

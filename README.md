@@ -39,12 +39,7 @@ pip install -r requirements.txt
 python manage.py migrate
 ```
 
-### 6. Run the Setup Script
-```bash
-python scripts/fetch_datasets.py
-```
-
-### 7. Start the Development Server
+### 6. Start the Development Server
 ```bash
 python manage.py runserver
 ```

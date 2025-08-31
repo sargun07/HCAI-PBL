@@ -180,6 +180,18 @@ def index(request):
         "confusion_matrix": results["confusion_matrix"],
     })  # :contentReference[oaicite:2]{index=2}
 
+@require_POST
+def preprocess_dataset(request):
+    try:
+        base_path = _get_data_base_path()
+        loader = IMDBDataLoader(base_path, 'IMDB Dataset.csv')
+        df = loader.load_data()
+        loader.preprocess()
+        loader.save_preprocessed_data('imdb_dataset_preprocessed.csv')
+        return JsonResponse({"success": True, "rows": len(df)})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
 # ---------- Train / Retrain ----------
 @csrf_exempt
 def train(request):

@@ -5,6 +5,9 @@
   <!-- Reuse Project 1’s design system first, then override lightly for P2 -->
   <link rel="stylesheet" href="{% static 'project1/style.css' %}">
   <link rel="stylesheet" href="{% static 'project2/style.css' %}">
+  <style>
+    
+  </style>
 {% endblock %}
 
 {% block content %}
@@ -39,7 +42,7 @@
       which makes them a good fit for Active Learning.
     </p>
     <p>
-      <h3><u>please click on train button before using the app</u></h3>
+      <h3><u>please click on train button before using the app</u> <i>(it will take few minutes)</i></h3>
 
     </p>
   </div>
@@ -49,6 +52,7 @@
         <button id="btn-show-results" class="upload-button">Show Accuracy Results</button>
         <button id="btn-train" class="upload-button">Train</button>
         <span id="train-loading" style="display:none; margin-left:10px;">⏳ Training...</span>
+        <!-- <button id="btn-preprocess" class="upload-button">Preprocess Dataset</button> -->
         <button id="btn-download" class="upload-button" style="margin-left: 12px;">
         Download Model
         </button>
@@ -140,7 +144,7 @@
                   <th>Pred: Pos</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody style="background-color: #888;">
                 <tr>
                   <th>Actual: Neg</th>
                   <td>{{ confusion_matrix.0.0 }}</td>
@@ -168,7 +172,7 @@
                   <th>Support</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody style="background-color: #888;">
                 {% for label, metrics in report.items %}
                   {% if label != 'accuracy' %}
                     <tr>
@@ -265,7 +269,7 @@
       <div class="center-narrow" style="margin: 16px auto 0; max-width:540px;">
         <table id="al-table" class="nice-table compact" style="display:none;width:100%;">
           <thead><tr><th># Labeled</th><th>Accuracy</th></tr></thead>
-          <tbody></tbody>
+          <tbody style="background-color: #888;"></tbody>
         </table>
       </div>
       </div>
@@ -442,6 +446,15 @@
     });
   });
 
+document.getElementById('btn-preprocess')?.addEventListener('click', async ()=>{
+  const resp = await fetch("{% url 'project2:preprocess_dataset' %}", {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+  });
+  const data = await resp.json();
+  alert(data.success ? `Preprocessed ${data.rows} rows` : `Error: ${data.error}`);
+});
   // Summary/results toggle
   document.addEventListener("DOMContentLoaded", function () {
     const btnSummary = document.getElementById("btn-show-summary");
