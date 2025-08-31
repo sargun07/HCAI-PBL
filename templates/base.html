@@ -2,31 +2,170 @@
 
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <link rel= "stylesheet" href="{% static 'style.css' %}">
-        {% block extra_css %}{% endblock %}
-        <link rel="shortcut icon" href="{% static 'images/HCAI icon.png' %}">
-        <title>Human-Centric AI</title>
-        <style></style>
-    </head>
-    <body>
-        <nav class="navbar">
-        <div class="logo">Human-Centric AI</div>
-        <ul class="nav-links">
-            <li><a href="{% url 'home:index' %}">Home</a></li>
-            <li><a href="#">About</a></li>
-            <li><a href="#">Contact</a></li>
-        </ul>
-    </nav>
+  <head>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    {% block extra_css %}{% endblock %}
+    <link rel="shortcut icon" href="{% static 'images/HCAI icon.png' %}">
+    <title>Human-Centric AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+
+  <body>
+    <!-- Background canvas -->
+    <canvas id="bg-canvas" aria-hidden="true"
+      style="position:fixed;inset:0;z-index:0;display:block;pointer-events:none;"></canvas>
+
+    <!-- Sticky Navbar -->
+   <nav class="navbar" style="position: relative;">
+  <div class="container nav-inner" style="display: flex; align-items: center;">
+    <!-- Logo on the left -->
+    <div class="logo">Human-Centric AI</div>
+
+    <!-- Home link forced to the extreme right -->
+    <ul class="nav-links" style="
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        position: absolute;
+        right: 50px; /* distance from the right edge */
+        top: 50%;
+        transform: translateY(-50%);
+    ">
+      <li style="display: inline-block;">
+        <a href="{% url 'home:index' %}" data-spy="home"
+           style="color: #ccc; text-decoration: none; transition: color 0.3s; padding: 8px 2px; border-bottom: 2px solid transparent;">
+          Home
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>
+
 
     <!-- Page-specific content -->
-    <div class="grid-parent">
-        {% block content %}
-        {% endblock %}
-    </div>
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
 
+    <!-- Background animation + scrollspy -->
+    <script>
+      // ---------- Subtle multi-shape background animation ----------
+      (function () {
+        const c = document.getElementById('bg-canvas');
+        const ctx = c.getContext('2d');
+        let w, h, dpr;
+        const shapes = [];
+        const SHAPE_TYPES = ['circle', 'square', 'hex'];
 
-        {% block script %}
-        {% endblock script %}
-    </body>
+        function resize() {
+          dpr = Math.max(1, window.devicePixelRatio || 1);
+          w = c.width = Math.floor(innerWidth * dpr);
+          h = c.height = Math.floor(innerHeight * dpr);
+          c.style.width = innerWidth + 'px';
+          c.style.height = innerHeight + 'px';
+        }
+        window.addEventListener('resize', resize, { passive: true });
+        resize();
+
+        function rand(min, max) { return Math.random() * (max - min) + min; }
+
+        function initParticles(count = 70) {
+          shapes.length = 0;
+          for (let i = 0; i < count; i++) {
+            const type = SHAPE_TYPES[Math.floor(Math.random() * SHAPE_TYPES.length)];
+            const size = rand(6, 18) * dpr;
+            const speed = rand(0.08, 0.35) * dpr;
+            const angle = rand(0, Math.PI * 2);
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+            const alpha = rand(0.15, 0.45);
+            shapes.push({ type,
+              x: rand(0, w), y: rand(0, h),
+              vx, vy, size, alpha,
+              rot: rand(0, Math.PI * 2), vr: rand(-0.004, 0.004)
+            });
+          }
+        }
+        initParticles();
+
+        function drawHex(x, y, r, rot) {
+          const sides = 6;
+          ctx.beginPath();
+          for (let i = 0; i < sides; i++) {
+            const a = rot + i * (Math.PI * 2 / sides);
+            const px = x + r * Math.cos(a);
+            const py = y + r * Math.sin(a);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        function tick() {
+          ctx.clearRect(0, 0, w, h);
+          for (const s of shapes) {
+            s.x += s.vx; s.y += s.vy; s.rot += s.vr;
+
+            if (s.x < -20) s.x = w + 20;
+            if (s.x > w + 20) s.x = -20;
+            if (s.y < -20) s.y = h + 20;
+            if (s.y > h + 20) s.y = -20;
+
+            ctx.globalAlpha = s.alpha;
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.9)';
+            switch (s.type) {
+              case 'circle':
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.size * 0.5, 0, Math.PI * 2); ctx.fill(); break;
+              case 'square':
+                ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot);
+                ctx.fillRect(-s.size * 0.5, -s.size * 0.5, s.size, s.size);
+                ctx.restore(); break;
+              case 'hex':
+                drawHex(s.x, s.y, s.size * 0.55, s.rot); break;
+            }
+          }
+          ctx.globalAlpha = 1;
+          requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      })();
+
+      // ---------- Smooth scroll + scrollspy ----------
+      (function () {
+        const mapping = { home: '#home' };
+        const links = [...document.querySelectorAll('.nav-links a[data-spy]')];
+
+        function setActive(key) {
+          links.forEach(l => l.classList.toggle('active', l.dataset.spy === key));
+        }
+
+        const obs = new IntersectionObserver((entries) => {
+          const visible = entries.filter(e => e.isIntersecting)
+                                 .sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+          if (!visible) return;
+          for (const [key, sel] of Object.entries(mapping)) {
+            if (visible.target.matches(sel)) { setActive(key); break; }
+          }
+        }, { rootMargin: '-20% 0px -60% 0px', threshold: [0.25, 0.6, 0.9] });
+
+        Object.values(mapping).forEach(sel => {
+          const el = document.querySelector(sel);
+          if (el) obs.observe(el);
+        });
+
+        // Smooth-scroll for internal anchors
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+          a.addEventListener('click', (e) => {
+            const id = a.getAttribute('href');
+            const el = document.querySelector(id);
+            if (!el) return;
+            e.preventDefault();
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        });
+      })();
+    </script>
+
+    {% block script %}{% endblock script %}
+  </body>
 </html>

@@ -5,5 +5,6 @@ app_name = 'home'
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("index/", views.index, name="index"),
     path('project1/', include('project1.urls'))
 ]

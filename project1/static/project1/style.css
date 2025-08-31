@@ -1,11 +1,4 @@
-body {
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: url("/static/home/images/background_img.png") no-repeat center center fixed;
-    background-size: cover;
-    color: #fff;
-    overflow-x: hidden;
-}
+
 
 /* Upload Section Styling */
 .upload-section {
@@ -188,10 +181,6 @@ body {
     align-items: flex-start;
 }
 
-
-
-
-
 .ml-form select, .ml-form input[type="text"] {
     padding: 10px;
     width: 100%;
@@ -235,8 +224,7 @@ body {
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 30px;
-    max-width: 1200px;
+    gap: 20px;
     margin: auto;
     padding: 20px;
 }
@@ -244,14 +232,18 @@ body {
 /* Left side: recommendation + summary */
 .visual-left {
     flex: 1;
-    min-width: 300px;
-    max-width: 400px;
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+    /* min-width: 250px; */
+    /* max-width: 400px; */
 }
 
 /* Right side: plots */
 .visual-right {
     flex: 2;
-    min-width: 400px;
+    /* min-width: 400px; */
     background-color: rgba(255, 255, 255, 0.05);
     padding: 20px;
     border-radius: 10px;
@@ -370,4 +362,28 @@ body {
     border-radius: 0 10px 10px 0;
     min-height: 500px;
 }
+
+/* Small polish */
+h3, h4 { color: #0ff; }
+#hyperparameter-container h4 { color: #0ff; }
+#model-plot img { max-width: 100%; border-radius: 8px; border: 1px solid #555; background:#111; padding:10px; }
+
+/* Grid for 2-per-line layout */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+/* Info boxes under section headings */
+.info-box {
+  background: #112244;
+  border-left: 4px solid #0ff;
+  padding: 10px 15px;
+  margin: 10px 0 20px 0;
+  border-radius: 6px;
+  color: #eee;
+  font-size: 0.9rem;
+}
+
 

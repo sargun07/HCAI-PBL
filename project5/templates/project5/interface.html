@@ -4,278 +4,1126 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'project5/style.css' %}">
 <style>
-  /* Minimal styling so it works even if style.css is empty. Move to style.css later. */
-  .controls {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
+  :root{
+    --card-bg: rgba(0,0,0,.45);
+    --card-border: rgba(255,255,255,.08);
+    --accent:#0ff;
+    --muted:#9ec7c7;
   }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(5, 56px);
-    grid-template-rows: repeat(5, 56px);
-    gap: 4px;
-    user-select: none;
+  body{
+    margin:0; font-family: 'Segoe UI', system-ui, sans-serif;
+    background: url("/static/home/images/background_img.png") no-repeat center center fixed;
+    background-size: cover; color:#fff;
   }
-  .cell {
-    width: 56px; height: 56px; border: 1px solid #ccc; display:flex;
-    align-items:center; justify-content:center; font-size: 26px; cursor: pointer;
+  .page-title{ text-align:center; color:var(--accent); font-size:2.1rem; margin:28px 0 8px; }
+  .subtitle{ text-align:center; color:var(--muted); margin-bottom:18px; }
+
+  /* Stepper */
+  .stepper{ display:flex; justify-content:center; gap:.5rem; flex-wrap:wrap; margin:0 auto 18px; padding:0 12px; }
+  .step{
+    display:flex; align-items:center; gap:.5rem; padding:8px 10px; border-radius:999px; border:1px dashed var(--card-border);
+    background: rgba(0,0,0,.3); cursor:pointer; user-select:none; transition:transform .15s;
   }
-  .legend { margin-top: 1rem; }
-  .legend div { display: inline-flex; align-items: center; gap: .35rem; margin-right: .75rem; }
-  pre#json-out { margin-top: 1rem; background: #111; color:#0f0; padding: .75rem; max-height: 200px; overflow:auto; }
+  .step:hover{ transform: translateY(-1px); }
+  .step.active{ border-style:solid; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,255,255,.15) inset; }
+  .step .num{ width:22px; height:22px; display:grid; place-items:center; border-radius:50%; background:var(--accent); color:#000; font-weight:700; font-size:.9rem; }
+  .step .hint{ color:#cfeeee; font-size:.85rem; opacity:.9 }
+
+  /* Layout */
+  .container { width: 100%; max-width: 100%; margin: 0 auto 40px; padding: 0 20px; box-sizing: border-box; }
+  .row{ display:grid; grid-template-columns: 1fr; gap:14px; }
+  .row-3{ display:grid; grid-template-columns: 1fr; gap:20px; }
+  @media (min-width: 900px){ .row-3{ grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1280px){ .row-3{ grid-template-columns: 1fr 1fr 1fr; } }
+  #s0{ grid-column: 1 / -1; }
+
+  .card{ background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px; padding:14px; backdrop-filter: blur(6px); }
+  .card h3{ margin:4px 0 10px; font-size:1.15rem; }
+  .muted{ color:#cfeeee; opacity:.85; font-size:.95rem; }
+
+  /* Sticky controls */
+  .sticky{ position:sticky; top:8px; z-index:5; }
+  .controls{ display:flex; gap:.6rem .8rem; align-items:center; flex-wrap:wrap; }
+  .controls label{ display:flex; align-items:center; gap:.35rem; }
+  .controls input[type=number]{ width:64px; }
+  .btn{ appearance:none; border:1px solid var(--card-border); background:#002a2a; color:#eaffff; padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600; }
+  .btn:hover{ filter:brightness(1.1); }
+  .btn.primary{ background: var(--accent); color:#000; }
+  .btn.ghost{ background: transparent; }
+  .btn.warn{ background:#442; border-color:#aa7777; }
+  .btn.success{ background:#134; border-color:#46a; }
+  .btn[disabled]{ opacity:.5; cursor:not-allowed; }
+  .bar input[type=number] { width: 48px;}
+
+  /* Grid */
+  .grid{ display:grid; grid-template-columns: repeat(5, 56px); grid-template-rows: repeat(5, 56px); gap:4px; user-select:none; }
+  .cell{ width:56px; height:56px; border:1px solid #3b5a5a; display:flex; align-items:center; justify-content:center; font-size:26px; cursor:pointer; border-radius:8px; background: rgba(0,0,0,.25); }
+  .legend{ display:flex; flex-wrap:wrap; gap:.6rem 1rem; margin-top:10px; font-size:.95rem; }
+  .legend b{ color:var(--accent); }
+
+  /* A/B */
+  .ab-wrap{ display:flex; flex-wrap:wrap; gap:16px; }
+  .ab-col{ flex:1 1 280px; }
+  .ab-col h4{ margin:6px 0 8px; }
+
+  /* Counters & status */
+  .bar{ display:flex; gap:1rem; flex-wrap:wrap; align-items:center; }
+  .pill{ padding:4px 8px; border-radius:999px; background:rgba(0,0,0,.35); border:1px solid var(--card-border); font-size:.9rem; }
+
+  .status{ min-height:28px; }
+  .log{ max-height:160px; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#06181a; color:#b7f7ff; border-radius:10px; padding:8px; border:1px solid var(--card-border); }
+  #log { white-space: pre-line; }
+
+  /* Training metrics panel */
+  .metrics {
+    display:grid; grid-template-columns: 1fr; gap:8px; margin-top:10px;
+  }
+  .metric-line { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.95rem; color:#dff; }
+  .plot-wrap { background:#06181a; border:1px solid var(--card-border); border-radius:10px; padding:8px; }
+  #reinforcePlot { width:100%; height:140px; display:block; }
+
+  /* Toasts */
+  .toasts{ position:fixed; right:14px; bottom:14px; display:flex; flex-direction:column; gap:8px; z-index:9999; }
+  .toast{ background:#082427; border:1px solid var(--card-border); color:#dff; padding:10px 12px; border-radius:12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+
+  /* Accessibility */
+  .sr{ position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden; }
+
+  .plot-wrap { position: relative; } /* already exists; we just rely on it */
+.plot-label {
+  position:absolute; left:46px; bottom:4px; font: 11px ui-monospace, monospace; color:#aee; opacity:.9;
+}
+.plot-label.y {
+  left:6px; bottom:auto; top:10px; writing-mode: vertical-rl; transform: rotate(180deg);
+}
+.plot-tip {
+  position:absolute; pointer-events:none; background:#001a1a; border:1px solid var(--card-border);
+  color:#dff; font: 12px ui-monospace, monospace; padding:4px 6px; border-radius:8px; transform:translateY(-100%);
+  white-space:nowrap; display:none;
+}
+/* --- training layout polish --- */
+.train-actions { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:8px; }
+.train-actions .btn { background:#0b2f2f; border-color: var(--card-border); color:#eaffff; }
+.train-actions .btn.primary { background: var(--accent); color:#000; } /* keep one primary accent if you like */
+
+.preset-bar { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:10px; align-items:center; }
+.preset-note { color:#cfeeee; opacity:.9; font-size:.92rem; margin-top:4px; }
+
+.metrics-label { margin-top:14px; color:#cfeeee; opacity:.85; font-size:.95rem; }
+.metrics + .metrics-label { margin-top:18px; } /* spacing between sections */
+
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="controls">
-  <label>Tool:
-    <select id="tool">
-      <option value="mouse">Mouse 🐭</option>
-      <option value="wall">Wall 🧱</option>
-      <option value="trap">Trap ☠️</option>
-      <option value="cheese">Cheese 🧀</option>
-      <option value="organic">Organic 🥦</option>
-      <option value="empty">Eraser ␡</option>
-    </select>
-  </label>
+<h1 class="page-title">Project 5: Reinforcement Learning with Human Feedback</h1>
 
-  <span>| Randomize counts:</span>
-  <label>Walls <input id="rand-walls" type="number" min="0" value="3" style="width:4rem"></label>
-  <label>Traps <input id="rand-traps" type="number" min="0" value="2" style="width:4rem"></label>
-  <label>Cheese <input id="rand-cheese" type="number" min="0" value="2" style="width:4rem"></label>
-  <label>Organic <input id="rand-organic" type="number" min="0" value="2" style="width:4rem"></label>
-
-  <button id="randomize">Randomize</button>
-  <button id="clear">Clear</button>
-  <button id="export">Export JSON</button>
-  <label style="margin-left:.5rem">Import <input id="import" type="file" accept="application/json"></label>
-  <button id="saveToServer">Save to server</button>
+<div class="project-nav">
+    <a href="{% url 'project1:index' %}" class="project-link">Project 1</a>
+    <a href="{% url 'project2:index' %}" class="project-link">Project 2</a>
+    <a href="{% url 'project3:index' %}" class="project-link">Project 3</a>
+    <a href="{% url 'project4:index' %}" class="project-link">Project 4</a>
+    <a href="{% url 'project5:index' %}" class="project-link">Project 5</a>
 </div>
 
-<div id="grid" class="grid"></div>
+<div class="container">
+  <!-- Stepper -->
+  <nav class="stepper" id="stepper">
+    <div class="step" data-step="0"><span class="num">0</span><span class="hint">Project Summary</span></div>
+    <div class="step" data-step="1"><span class="num">1</span><span class="hint">Environment Setup</span></div>
+    <div class="step" data-step="2"><span class="num">2</span><span class="hint">Rollout</span></div>
+    <div class="step" data-step="3"><span class="num">3</span><span class="hint">Compare A vs B</span></div>
+    <div class="step" data-step="5"><span class="num">4</span><span class="hint">Train & Reset </span></div>
+    <div class="step" data-step="4"><span class="num">5</span><span class="hint">Save</span></div>
+    
+  </nav>
 
-<div class="legend">
-  <strong>Legend:</strong>
-  <div>🐭 Mouse</div>
-  <div>🧱 Wall</div>
-  <div>☠️ Trap</div>
-  <div>🧀 Cheese</div>
-  <div>🥦 Organic</div>
-  <div>␡ Empty</div>
+  <div class="row">
+    <section id="s0" class="card">
+      <h3>Project Summary</h3>
+      <p class="muted">
+        In this project, we explore how a mouse can learn to find cheese in a 5×5 grid-world using reinforcement learning. 
+        <br><br>
+        <b>Task 1:</b> Train a policy with REINFORCE so the mouse learns to reach cheese and avoid traps.<br>
+        <b>Task 2:</b> Introduce human feedback by letting the user compare two trajectories and choose the preferred one.<br>
+        <b>Task 3:</b> Use this feedback to train a reward model (Bradley–Terry) and re-train the policy so the mouse learns more desirable behavior.
+      </p>
+    </section>
+  </div>
+
+  <div class="row row-3">
+    <section id="s1" class="card sticky">
+      <h3>Environment Setup</h3>
+      <p class="muted">
+        Design a 5×5 grid with exactly one 🐭 mouse plus any mix of walls 🧱, traps ☠️, and rewards (🧀 / 🥦).<br>
+        You can build the grid in two ways:<br>
+        <b>Manual</b> — select a tool (mouse, wall, trap, cheese, etc.) and click cells to place it;<br>
+        <b>Randomize</b> — enter how many of each element you want and click <i>Randomize</i> to auto-fill the grid (a single 🐭 is always ensured).<br>
+        Use <i>Clear</i> anytime to reset the grid.
+      </p>
+      <p class="muted"><b>Important:</b> For training, please <u>Randomize</u> the world first (required).</p>
+
+      <div class="bar" style="margin-bottom:8px">
+        <label>Tool
+          <select id="tool">
+            <option value="mouse">Mouse 🐭</option>
+            <option value="wall">Wall 🧱</option>
+            <option value="trap">Trap ☠️</option>
+            <option value="cheese">Cheese 🧀</option>
+            <option value="organic">Organic 🥦</option>
+            <option value="empty">Eraser ␡</option>
+          </select>
+        </label>
+        <br>
+        <label>Walls <input id="rand-walls" type="number" min="0" value="3"></label>
+        <label>Traps <input id="rand-traps" type="number" min="0" value="2"></label>
+        <label>Cheese <input id="rand-cheese" type="number" min="0" value="2"></label>
+        <label>Organic <input id="rand-organic" type="number" min="0" value="2"></label>
+        <button class="btn" id="randomize" title="We will place 1 mouse first, then fill counts">Randomize</button>
+        <button class="btn ghost" id="clear">Clear</button>
+      </div>
+
+      <div class="row">
+        <div class="grid" id="grid" aria-label="Editable 5 by 5 world grid"></div>
+        <div class="bar">
+          <span class="pill" id="count-mouse">🐭 Mouse: 0</span>
+          <span class="pill" id="count-wall">🧱 Walls: 0</span>
+          <span class="pill" id="count-trap">☠️ Traps: 0</span>
+          <span class="pill" id="count-cheese">🧀 Cheese: 0</span>
+          <span class="pill" id="count-organic">🥦 Organic: 0</span>
+          <span class="pill" id="count-empty">␡ Empty: 25</span>
+        </div>
+        <p class="muted" id="s1-hint"></p>
+      </div>
+    </section>
+
+    <section id="s2" class="card sticky">
+      <h3>Rollout</h3>
+
+      <section class="card" aria-labelledby="help-run-title">
+        <h3 id="help-run-title">How this works</h3>
+        <p class="muted">
+          Choose how the mouse acts and how many runs to simulate. Each episode ends on 🧀/🥦 (cheese),
+          ☠️ (trap), or when the max steps are reached.
+        </p>
+
+        <ul class="muted" style="margin: 6px 0 0 1.1rem;">
+          <li><b>Policy</b> — <b>random</b> (baseline), <b>trained</b> (after REINFORCE), <b>rlhf</b> (after RLHF).</li>
+          <li><b>Mode</b> — <b>stochastic</b> (explore; recommended for training), <b>greedy</b> (evaluate/demonstrate).</li>
+          <li><b>Episodes</b> — how many full runs to simulate right now.</li>
+        </ul>
+
+        <p class="muted" style="margin-top:8px">
+          <b>Tips:</b> Start with <i>Policy = random</i> and <i>Mode = stochastic</i> to see a baseline.
+          After training, switch to <i>trained + greedy</i> (or <i>rlhf + greedy</i>) to visualize results.
+        </p>
+      </section>
+
+      <div class="controls">
+        <label>Policy
+          <select id="policySel">
+            <option value="random">random</option>
+            <option value="trained">trained</option>
+            <option value="rlhf">rlhf</option>
+          </select>
+        </label>
+        <label>Mode
+          <select id="modeSel">
+            <option value="stochastic">stochastic</option>
+            <option value="greedy">greedy</option>
+          </select>
+        </label>
+        <label>Episodes <input id="episodesCount" type="number" min="1" value="1"></label>
+        <label>Speed <input id="speed" type="range" min="60" max="600" step="20" value="200"></label>
+        <button class="btn primary" id="btnStart" disabled>Start</button>
+        <button class="btn" id="btnPause" disabled>Pause</button>
+        <button class="btn" id="btnResume" disabled>Resume</button>
+      </div>
+      <div class="status" id="status"></div>
+      <div class="log" id="log" aria-live="polite"></div>
+    </section>
+
+    <section id="s3" class="card">
+      <h3>Compare A vs B</h3>
+      <p class="muted">We’ll generate two trajectories from the same starting grid. Watch <b>A</b> fully, then <b>B</b>, and pick the one you prefer. If undecided, choose Skip/Tie.</p>
+      <div class="bar" style="margin-bottom:8px">
+        <button class="btn" id="btnCompare" disabled>Compare A vs B</button>
+        <button class="btn" id="btnClearPrefs" title="Delete preferences.jsonl only">Clear preferences</button>
+        <span class="pill" id="prefs-progress">Preferences: 0</span>
+        <span class="sr" id="ab-aria" aria-live="polite"></span>
+      </div>
+      <div class="ab-wrap">
+        <div class="ab-col">
+          <h4>Trajectory A</h4>
+          <div id="gridA" class="grid"></div>
+          <div class="bar">
+            <button class="btn success" id="chooseA" disabled>Choose A</button>
+          </div>
+        </div>
+        <div class="ab-col">
+          <h4>Trajectory B</h4>
+          <div id="gridB" class="grid"></div>
+          <div class="bar">
+            <button class="btn success" id="chooseB" disabled>Choose B</button>
+          </div>
+        </div>
+      </div>
+      <div class="bar" style="margin-top:8px">
+        <button class="btn ghost" id="chooseTie" disabled>Skip / Tie</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="row">
+    <section id="s5" class="card">
+      <h3>Train & Reset</h3>
+      <section class="card" aria-labelledby="help-train-title">
+        <p class="muted">
+          <b>Before training:</b> make sure you’ve clicked <b>Randomize</b> in <i>Environment Setup</i> (required).
+        </p>
+        <ol class="muted" style="margin: 6px 0 0 1.1rem;">
+          <li><b>Collect trajectories</b> — use <i>Policy = trained</i>, <i>Mode = stochastic</i>, and run several episodes.</li>
+          <li><b>Update the policy</b> — click <b>Train</b> (REINFORCE) to learn from those episodes.</li>
+          <li><b>(Optional) Preferences → RLHF</b> — compare A vs B, train the reward (BT), then fine-tune the policy (RLHF).</li>
+        </ol>
+<br>
+    <div class="train-actions">
+  <button class="btn" id="btnTrainReinforce" title="Train the policy with REINFORCE">Train (REINFORCE)</button>
+  <button class="btn" id="btnTrainReward" title="Uses your A/B picks to learn a reward model">Train Reward (BT)</button>
+  <button class="btn" id="btnTrainRLHF" title="Fine-tune the policy with the learned reward">Fine-tune Policy (RLHF)</button>
+  <button class="btn warn" id="btnReset" title="Delete trained/rlhf/reward and clear preferences">Reset training</button>
 </div>
 
-<pre id="json-out" hidden></pre>
+<div class="preset-bar">
+  <span class="pill"><strong>Presets:</strong></span>
+  <button class="btn ghost" id="hp-fast">Fast</button>
+  <button class="btn ghost" id="hp-bal">Balanced</button>
+  <button class="btn ghost" id="hp-thor">Thorough</button>
+</div>
+<p class="preset-note">
+  Presets fill the hyperparameters below: <b>Fast</b> = quick demo, <b>Balanced</b> = sensible default, <b>Thorough</b> = slower but stronger training.
+</p>
+
+<div style="border: solid 0.5px; border-radius: 5px;border-color: #002a2a;">
+        <div class="bar" id="hp-reinforce" style="margin-top:8px; flex-wrap:wrap;">
+  <span class="pill">REINFORCE</span>
+  <label>Updates <input id="hp-r-updates" type="number" min="1" max="200" value="20" style="text-align: center;"></label>
+  <label>Batch episodes <input id="hp-r-batch" type="number" min="1" max="128" value="32" style="text-align: center;"></label>
+  <label>γ <input id="hp-r-gamma" type="number" step="0.01" min="0.80" max="0.999" value="0.99" style="text-align: center;"></label>
+  <label>Entropy <input id="hp-r-ent" type="number" step="0.0005" min="0" max="0.02" value="0.001" style="text-align: center;"></label>
+  <label>Max steps <input id="hp-r-max" type="number" min="5" max="200" value="40" style="text-align: center;"></label>
+</div>
+
+<div class="bar" id="hp-bt" style="margin-top:6px; flex-wrap:wrap;">
+  <span class="pill">Reward (BT)</span>
+  <label>Epochs <input id="hp-bt-epochs" type="number" min="1" max="100" value="5" style="text-align: center;"></label>
+  <label>Batch size <input id="hp-bt-batch" type="number" min="1" max="256" value="8" style="text-align: center;"></label>
+</div>
+
+<div class="bar" id="hp-rlhf" style="margin-top:6px; flex-wrap:wrap;">
+  <span class="pill">RLHF</span>
+  <label>Steps <input id="hp-hf-steps" type="number" min="1" max="200" value="50" style="text-align: center;"></label>
+  <label>γ <input id="hp-hf-gamma" type="number" step="0.01" min="0.80" max="0.999" value="0.99" style="text-align: center;"></label>
+  <label>Entropy <input id="hp-hf-ent" type="number" step="0.0005" min="0" max="0.02" value="0.0015" style="text-align: center;"></label>
+  <label>KL coef <input id="hp-hf-kl" type="number" step="0.001" min="0" max="0.5" value="0.05" style="text-align: center;"></label>
+  <label>Max steps <input id="hp-hf-max" type="number" min="5" max="200" value="40" style="text-align: center;"></label>
+</div>
+</div>
+<div class="metrics-label">REINFORCE results:</div>
+<div class="metrics" id="metrics-reinforce" aria-live="polite">
+  <div class="metric-line" id="reinforceStatus"></div>
+  <div class="plot-wrap" id="reinforcePlotWrap">
+    <canvas id="reinforcePlot" width="900" height="140"></canvas>
+    <div class="plot-label x">update</div>
+    <div class="plot-label y">avg_return</div>
+    <div class="plot-tip" id="reinforceTip"></div>
+  </div>
+</div>
+
+<div class="metrics-label">Reward (BT) results:</div>
+<div class="metrics" id="metrics-bt" aria-live="polite" style="border: solid 0.5px; border-radius: 5px;border-color: #002a2a;">
+  <div class="metric-line" id="btStatus"></div>
+</div>
+<div class="metrics-label">RLHF results:</div>
+<div class="metrics" id="metrics-rlhf" aria-live="polite" style="border: solid 0.5px; border-radius: 5px;border-color: #002a2a;">
+  <div class="metric-line" id="rlhfStatus"></div>
+</div>
+
+
+      </section>
+    </section>
+
+    <section id="s4" class="card">
+      <h3>Save</h3>
+      <div class="bar" style="margin-top:10px; flex-wrap:wrap;">
+  <span class="pill">Download models</span>
+  <a class="btn" href="{% url 'project5:download_model' 'policy_trained' %}">Baseline policy (.pt)</a>
+  <a class="btn" href="{% url 'project5:download_model' 'policy_rlhf' %}">RLHF policy (.pt)</a>
+  <a class="btn" href="{% url 'project5:download_model' 'reward' %}">Reward model (.pt)</a>
+  <a class="btn" href="{% url 'project5:download_models_zip' %}">All models (zip)</a>
+</div>
+
+    </section>
+  </div>
+</div>
+
+<!-- toasts -->
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="true"></div>
 {% endblock %}
 
 {% block script %}
 <script>
-(() => {
+(()=>{
   const SIZE = 5;
-
   const ELEMENTS = {
-    empty:   { code: 0, icon: ''   },
-    mouse:   { code: 1, icon: '🐭' },
-    wall:    { code: 2, icon: '🧱' },
-    trap:    { code: 3, icon: '☠️' },
-    cheese:  { code: 4, icon: '🧀' },
-    organic: { code: 5, icon: '🥦' }
+    empty:{ code:0, icon:'' }, mouse:{ code:1, icon:'🐭' }, wall:{ code:2, icon:'🧱' },
+    trap:{ code:3, icon:'☠️' }, cheese:{ code:4, icon:'🧀' }, organic:{ code:5, icon:'🥦' }
   };
-  const CODE_TO_KEY = Object.entries(ELEMENTS).reduce((acc, [k, v]) => (acc[v.code] = k, acc), {});
-  const ONE_MOUSE = true; // enforce a single mouse
+  const CODE_TO_KEY = Object.fromEntries(Object.entries(ELEMENTS).map(([k,v])=>[v.code,k]));
+  const ONE_MOUSE = true;
 
-  const toolEl = document.getElementById('tool');
-  const gridEl = document.getElementById('grid');
-  const jsonOutEl = document.getElementById('json-out');
+  // DOM
+  const gridEl = byId('grid');
+  const toolEl = byId('tool');
+  const counts = {
+    mouse: byId('count-mouse'), wall: byId('count-wall'), trap: byId('count-trap'),
+    cheese: byId('count-cheese'), organic: byId('count-organic'), empty: byId('count-empty'),
+  };
+  const randWallsEl = byId('rand-walls');
+  const randTrapsEl = byId('rand-traps');
+  const randCheeseEl = byId('rand-cheese');
+  const randOrganicEl = byId('rand-organic');
+  const jsonOutEl = byId('json-out');
+  const statusEl = byId('status');
+  const logEl = byId('log');
+  const toastsEl = byId('toasts');
 
-  const randWallsEl    = document.getElementById('rand-walls');
-  const randTrapsEl    = document.getElementById('rand-traps');
-  const randCheeseEl   = document.getElementById('rand-cheese');
-  const randOrganicEl  = document.getElementById('rand-organic');
+  const btnStart = byId('btnStart');
+  const btnPause = byId('btnPause');
+  const btnResume= byId('btnResume');
+  const speedEl  = byId('speed');
+  const policySel= byId('policySel');
+  const modeSel  = byId('modeSel');
+  const episodesEl = byId('episodesCount');
 
-  const randomizeBtn   = document.getElementById('randomize');
-  const clearBtn       = document.getElementById('clear');
-  const exportBtn      = document.getElementById('export');
-  const importInput    = document.getElementById('import');
-  const saveBtn        = document.getElementById('saveToServer');
+  const btnCompare = byId('btnCompare');
+  const gridAEl = byId('gridA');
+  const gridBEl = byId('gridB');
+  const chooseA = byId('chooseA');
+  const chooseB = byId('chooseB');
+  const chooseTie = byId('chooseTie');
+  const abAria = byId('ab-aria');
+  const prefsProgress = byId('prefs-progress');
 
-  // 2D state (rows x cols) holding ELEMENTS keys ("empty" | "mouse" | ...)
-  let state = makeEmptyState();
+  const exportBtn = byId('export');
+  const importInput = byId('import');
+  const saveBtn = byId('saveToServer');
+
+  const randomizeBtn = byId('randomize');
+  const clearBtn = byId('clear');
+
+  // BT metrics
+const btStatusEl = byId('btStatus');
+// const btPlotCanvas = byId('btPlot');
+
+// RLHF metrics (numbers only)
+const rlhfStatusEl = document.getElementById('rlhfStatus');
+function setRLHFStatus(text){
+  if (rlhfStatusEl) rlhfStatusEl.textContent = text || '';
+}
+
+  // NEW: training UI elements
+  const btnTrainReinforce = byId('btnTrainReinforce');
+  const btnTrainReward = byId('btnTrainReward');
+  const btnTrainRLHF = byId('btnTrainRLHF');
+  const btnReset = byId('btnReset');
+  const reinforceStatusEl = byId('reinforceStatus');
+  const reinforcePlotCanvas = byId('reinforcePlot');
+const reinforcePlotWrap   = byId('reinforcePlotWrap');
+const reinforceTip        = byId('reinforceTip');
+
+
+  let state = emptyState();
+  let episodeTimer = null; // for pause/resume
+  let playDelay = +speedEl.value; // ms
+  let paused = false;
+
+  let currentPair = null;
+  const AB_DELAY_MS_DEFAULT = 150;
+
+  // NEW: require randomization before training
+  let randomizedSinceClear = false;
 
   init();
 
-  // ---- functions ----
-  function init() {
+  function init(){
     renderGrid();
-    attachHandlers();
-  }
+    updateCounters();
+    gateSteps();
 
-  function makeEmptyState() {
-    return Array.from({ length: SIZE }, () => Array.from({ length: SIZE }, () => 'empty'));
-  }
-
-  function renderGrid() {
-    gridEl.innerHTML = '';
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        cell.dataset.row = r;
-        cell.dataset.col = c;
-        cell.textContent = ELEMENTS[state[r][c]].icon;
-        gridEl.appendChild(cell);
-      }
-    }
-  }
-
-  function attachHandlers() {
     gridEl.addEventListener('click', onCellClick);
-    randomizeBtn.addEventListener('click', onRandomize);
-    clearBtn.addEventListener('click', clearGrid);
+    randomizeBtn.addEventListener('click', ()=>onRandomize(false));
+    clearBtn.addEventListener('click', ()=>{ state=emptyState(); randomizedSinceClear=false; renderGrid(); updateCounters(); gateSteps(); });
     exportBtn.addEventListener('click', exportJSON);
     importInput.addEventListener('change', importJSON);
     saveBtn.addEventListener('click', saveToServer);
+
+    btnStart.addEventListener('click', startEpisodes);
+    btnPause.addEventListener('click', ()=>{ paused = true; btnPause.disabled=true; btnResume.disabled=false; toast('⏸️ Paused'); });
+    btnResume.addEventListener('click', ()=>{ paused=false; btnPause.disabled=false; btnResume.disabled=true; toast('▶️ Resumed'); });
+    speedEl.addEventListener('input', ()=> playDelay = +speedEl.value);
+
+    btnCompare.addEventListener('click', compareAB);
+    chooseA.addEventListener('click', ()=> chooseWinner('A'));
+    chooseB.addEventListener('click', ()=> chooseWinner('B'));
+    chooseTie.addEventListener('click', ()=> chooseWinner('T'));
+
+    btnTrainReinforce?.addEventListener('click', trainReinforce);
+    btnTrainReward?.addEventListener('click', trainRewardBT);
+    btnTrainRLHF?.addEventListener('click', trainRLHF);
+    btnReset?.addEventListener('click', resetTraining);
+
+    // stepper scroll
+    document.querySelectorAll('.stepper .step').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const s = +el.dataset.step;
+        const target = byId('s'+s);
+        if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    });
+
+    // restore pref count
+    const pc = +localStorage.getItem('p5_prefs')||0; prefsProgress.textContent = `Preferences: ${pc}`;
   }
 
-  function onCellClick(e) {
-    const cell = e.target.closest('.cell');
-    if (!cell) return;
-    const r = +cell.dataset.row;
-    const c = +cell.dataset.col;
-    const tool = toolEl.value;
+  function emptyState(){ return Array.from({length:SIZE}, ()=> Array.from({length:SIZE}, ()=> 'empty')); }
 
-    if (ONE_MOUSE && tool === 'mouse') {
-      removeAll('mouse');
+  function renderGrid(){
+    gridEl.innerHTML='';
+    for(let r=0;r<SIZE;r++){
+      for(let c=0;c<SIZE;c++){
+        const d=document.createElement('div');
+        d.className='cell'; d.dataset.row=r; d.dataset.col=c; d.textContent = ELEMENTS[state[r][c]].icon;
+        gridEl.appendChild(d);
+      }
     }
+  }
+
+  function onCellClick(e){
+    const cell = e.target.closest('.cell'); if(!cell) return;
+    const r=+cell.dataset.row, c=+cell.dataset.col; const tool = toolEl.value;
+    if(ONE_MOUSE && tool==='mouse') removeAll('mouse');
     state[r][c] = tool;
-    renderGrid();
+    randomizedSinceClear = false; // manual edits require re-randomize before training
+    renderGrid(); updateCounters(); gateSteps();
   }
 
-  function removeAll(elementKey) {
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        if (state[r][c] === elementKey) state[r][c] = 'empty';
-      }
-    }
-  }
+  function removeAll(key){ for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(state[r][c]===key) state[r][c]='empty'; }
 
-  function onRandomize() {
-    // reset
-    state = makeEmptyState();
-
-    const counts = {
-      walls: parseInt(randWallsEl.value, 10) || 0,
-      traps: parseInt(randTrapsEl.value, 10) || 0,
-      cheese: parseInt(randCheeseEl.value, 10) || 0,
-      organic: parseInt(randOrganicEl.value, 10) || 0,
-    };
-
-    // place 1 mouse
+  function onRandomize(silent = false){
+    state = emptyState();
+    // one mouse first
     placeRandom('mouse', 1);
-
-    placeRandom('wall', counts.walls);
-    placeRandom('trap', counts.traps);
-    placeRandom('cheese', counts.cheese);
-    placeRandom('organic', counts.organic);
-
-    renderGrid();
+    placeRandom('wall',   num(randWallsEl.value));
+    placeRandom('trap',   num(randTrapsEl.value));
+    placeRandom('cheese', num(randCheeseEl.value));
+    placeRandom('organic',num(randOrganicEl.value));
+    randomizedSinceClear = true;
+    renderGrid(); updateCounters(); gateSteps();
+    if (!silent) toast('🎲 World randomized');
   }
 
-  function placeRandom(key, n) {
-    const free = [];
-    for (let r = 0; r < SIZE; r++) {
-      for (let c = 0; c < SIZE; c++) {
-        if (state[r][c] === 'empty') free.push([r, c]);
-      }
-    }
-    shuffle(free);
-    for (let i = 0; i < n && i < free.length; i++) {
-      const [r, c] = free[i];
-      state[r][c] = key;
-    }
+  function placeRandom(key, n){
+    const free=[]; for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(state[r][c]==='empty') free.push([r,c]);
+    shuffle(free); for(let i=0;i<n && i<free.length;i++){ const [r,c]=free[i]; state[r][c]=key; }
   }
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
+  function num(x){ return parseInt(x,10)||0; }
 
-  function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-  }
-
-  function clearGrid() {
-    state = makeEmptyState();
-    renderGrid();
-  }
-
-  function exportJSON() {
-    const payload = {
-      size: SIZE,
-      grid: state.map(row => row.map(k => ELEMENTS[k].code))
+  function updateCounters(){
+    const flat = state.flat();
+    const cnt = {
+      mouse: flat.filter(x=>x==='mouse').length,
+      wall: flat.filter(x=>x==='wall').length,
+      trap: flat.filter(x=>x==='trap').length,
+      cheese: flat.filter(x=>x==='cheese').length,
+      organic: flat.filter(x=>x==='organic').length,
     };
-    const txt = JSON.stringify(payload, null, 2);
-    jsonOutEl.hidden = false;
-    jsonOutEl.textContent = txt;
-
-    const blob = new Blob([txt], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'grid_layout.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    const used = Object.values(cnt).reduce((a,b)=>a+b,0);
+    counts.mouse.textContent = `🐭 Mouse: ${cnt.mouse}`;
+    counts.wall.textContent  = `🧱 Walls: ${cnt.wall}`;
+    counts.trap.textContent  = `☠️ Traps: ${cnt.trap}`;
+    counts.cheese.textContent= `🧀 Cheese: ${cnt.cheese}`;
+    counts.organic.textContent=`🥦 Organic: ${cnt.organic}`;
+    counts.empty.textContent = `␡ Empty: ${SIZE*SIZE - used}`;
   }
 
-  function importJSON(ev) {
-    const file = ev.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const payload = JSON.parse(e.target.result);
-        if (!payload.size || !payload.grid) throw new Error('Invalid layout file.');
-        if (payload.size !== SIZE) throw new Error(`Expected size ${SIZE}x${SIZE}, got ${payload.size}`);
-        state = payload.grid.map(row => row.map(code => CODE_TO_KEY[code] ?? 'empty'));
-        renderGrid();
-      } catch (err) {
-        alert(err.message);
+  function gateSteps(){
+    const hasOneMouse = state.flat().filter(x=>x==='mouse').length === 1;
+    btnStart.disabled = !hasOneMouse;
+    btnCompare.disabled = !hasOneMouse;
+    byId('s1-hint').textContent = hasOneMouse ? 'Looks good — you can run or compare now.' : 'You must place exactly one 🐭 before proceeding.';
+  }
+
+  // ===== EPISODES =====
+  async function startEpisodes(){
+    const episodes = Math.max(1, parseInt(episodesEl.value||'1',10)||1);
+    lockWorld(true);
+    paused=false; btnPause.disabled=false; btnResume.disabled=true;
+    logEl.textContent = '';
+
+    for(let e=0; e<episodes; e++){
+      // Randomize grid at the start of each demo episode (silent to avoid toast spam)
+      onRandomize(true);
+
+      const payload = { grid: exportGridToCodes(), policy: policySel.value, mode: modeSel.value };
+      setStatus(`Episode ${e+1}/${episodes}: preparing…`);
+      try{
+        const resp = await fetch("{% url 'project5:run_episode' %}", {
+          method:'POST',
+          headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if(!resp.ok) throw new Error(data?.detail||data?.error||'Server error');
+
+        setStatus(`Episode ${e+1}/${episodes}: playing ${data.frames.length} steps…`);
+        await playFrames(data.frames);
+
+        toast(`✅ Episode ${e+1}/${episodes} finished — Total return: ${fmt(data.total_return)}`);
+        log(`Episode ${e+1} return: ${fmt(data.total_return)}`);
+      }catch(err){
+        console.error(err);
+        toast('❌ Run failed: '+err.message);
+        break;
       }
+    }
+
+    lockWorld(false);
+    setStatus('');
+  }
+
+  function lockWorld(locked){
+    [toolEl, randWallsEl, randTrapsEl, randCheeseEl, randOrganicEl, randomizeBtn, clearBtn, exportBtn, importInput, saveBtn]
+      .forEach(el=> el.disabled = !!locked);
+    btnStart.disabled = !!locked || btnStart.disabled;
+  }
+
+  function setStatus(t){ statusEl.textContent = t; }
+  function log(t){ logEl.textContent += (t+'\n'); logEl.scrollTop = logEl.scrollHeight; }
+  function toast(t){ const d=document.createElement('div'); d.className='toast'; d.textContent=t; toastsEl.appendChild(d); setTimeout(()=>d.remove(), 3500); }
+
+  function exportGridToCodes(){ return state.map(row=> row.map(k=> ELEMENTS[k].code)); }
+
+  function applyGridFromCodes(codes){
+    for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
+      const code = codes[r][c]; state[r][c] = CODE_TO_KEY[code] ?? 'empty';
+    }
+    renderGrid();
+  }
+
+  function playFrames(frames){
+    return new Promise(resolve=>{
+      let idx=0; const step=()=>{
+        if(paused){ episodeTimer = setTimeout(step, 60); return; }
+        applyGridFromCodes(frames[idx].grid); idx++;
+        if(idx>=frames.length){ resolve(); return; }
+        episodeTimer = setTimeout(step, playDelay);
+      }; step();
+    });
+  }
+
+  // wire the button once at init()
+document.getElementById('btnClearPrefs').addEventListener('click', clearPreferences);
+
+// function definition
+async function clearPreferences(){
+  const btn = document.getElementById('btnClearPrefs');
+  if(!confirm('Delete preferences.jsonl only?')) return;
+
+  btn.disabled = true;
+  const prev = btn.textContent;
+  btn.textContent = 'Clearing…';
+
+  try{
+    const resp = await fetch("{% url 'project5:clear_preferences' %}", {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken': csrf()},
+    });
+    const data = await resp.json();
+    if(!resp.ok || !data.ok) throw new Error(data.error || 'Server error');
+
+    // reset the in-page counter + any BT status that relied on old prefs
+    localStorage.removeItem('p5_prefs');
+    const pp = document.getElementById('prefs-progress');
+    if (pp) pp.textContent = 'Preferences: 0';
+
+    // (optional) clear the BT status line so users know they need new prefs
+    const btStatus = document.getElementById('btStatus');
+    if (btStatus) btStatus.textContent = 'Preferences cleared — train BT again after collecting new comparisons.';
+
+    const deletedList = Array.isArray(data.deleted) ? data.deleted.join(', ') : 'preferences.jsonl';
+    toast('🧹 Cleared: ' + deletedList);
+  }catch(e){
+    toast('❌ Clear preferences failed: ' + e.message);
+  }finally{
+    btn.textContent = prev;
+    btn.disabled = false;
+  }
+}
+
+
+  // ===== TRAINING =====
+  let _reinforceStats = [];
+
+function enableReinforceHover(){
+  const canvas = reinforcePlotCanvas;
+  const rectFor = () => canvas.getBoundingClientRect();
+  canvas.onmousemove = (ev)=>{
+    if(!_reinforceStats.length) { reinforceTip.style.display='none'; return; }
+    const rect = rectFor();
+    const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+
+    // same padding used in draw: L=40,R=10,T=10,B=25
+    const L=40,R=10,T=10,B=25, W=canvas.width, H=canvas.height;
+    const w=W-L-R, h=H-T-B;
+
+    // build scales to map pixel->data
+    const xs = _reinforceStats.map((d,i)=> d.update ?? i);
+    const ys = _reinforceStats.map(d=> (typeof d.avg_return==='number')? d.avg_return : 0);
+    const xMin = Math.min(...xs), xMax = Math.max(...xs);
+    const yMin = Math.min(...ys), yMax = Math.max(...ys);
+
+    if (x < L || x > W-R || y < T || y > H-B) { reinforceTip.style.display='none'; return; }
+
+    const t = xMin + ((x-L)/Math.max(1e-9,w)) * (xMax-xMin || 1);
+    // find nearest point by x
+    let idx = 0, best = Infinity;
+    xs.forEach((vx,i)=>{ const d=Math.abs(vx - t); if(d<best){best=d; idx=i;} });
+    const xPix = L + (w*((xs[idx]-xMin))/Math.max(1e-9,(xMax-xMin)||1));
+    const yPix = T + h - (h*((ys[idx]-yMin))/Math.max(1e-9,(yMax-yMin)||1));
+
+    reinforceTip.style.display='block';
+    reinforceTip.style.left = `${xPix + 10}px`;
+    reinforceTip.style.top  = `${yPix - 6}px`;
+    reinforceTip.textContent = `u:${xs[idx]}  return:${ys[idx].toFixed(3)}`;
+  };
+  canvas.onmouseleave = ()=>{ reinforceTip.style.display='none'; };
+}
+
+  async function trainReinforce(){
+    // Guard: must randomize first
+    if(!randomizedSinceClear){
+      toast('⚠️ Please Randomize the environment in Step 1 before training.');
+      byId('s1').scrollIntoView({behavior:'smooth', block:'start'});
+      return;
+    }
+
+    // Persist current grid so backend uses it
+    await fetch("{% url 'project5:save_layout' %}", {
+      method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+      body: JSON.stringify({ grid: exportGridToCodes() })
+    });
+
+    // Show "training…" status
+    setReinforceStatus('⏳ Training (REINFORCE) in progress…');
+    drawReinforcePlot([]); // clear
+
+    const body = {
+  updates: clampInt(byId('hp-r-updates').value, 1, 200, 20),
+  batch_episodes: clampInt(byId('hp-r-batch').value, 1, 128, 32),
+  gamma: clampFloat(byId('hp-r-gamma').value, 0.80, 0.999, 0.99),
+  entropy: clampFloat(byId('hp-r-ent').value, 0, 0.02, 0.001),
+  max_steps: clampInt(byId('hp-r-max').value, 5, 200, 40)
+};
+
+    try{
+      const resp = await fetch("{% url 'project5:train_reinforce_now' %}", {
+        method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+        body: JSON.stringify(body)
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error || 'Server error');
+
+      // Expect data.stats: [{update, avg_return, loss}, ...]
+      const stats = Array.isArray(data.stats) ? data.stats : [];
+      if(stats.length){
+        setReinforceStatus(`✅ Done. Updates: ${stats.length} — Last avg return: ${fmt(stats[stats.length-1].avg_return)}`);
+        drawReinforcePlot(stats);
+      }else{
+        setReinforceStatus('✅ Done. (No stats returned)');
+      }
+
+      toast(`📈 REINFORCE done. Saved: ${Array.isArray(data.saved)?data.saved.join(', '):'policy_net.pt'}`);
+      // switch UI to use the trained policy
+      byId('policySel').value = 'trained';
+    }catch(e){
+      setReinforceStatus('');
+      toast('❌ Train Policy failed: '+e.message);
+    }
+  }
+
+async function trainRewardBT(){
+  const btn = byId('btnTrainReward');
+  btn.disabled = true;
+  const prev = btn.textContent;
+  btn.textContent = 'Training reward…';
+
+  // Clear / init BT panel
+  setBTStatus('⏳ Training Reward (BT)…');
+  // drawBTPlot([]); // clears canvas with "No BT stats yet" until data arrives
+
+  try{
+    const body = {
+      jsonl: "preferences.jsonl",
+      epochs: (byId('hp-bt-epochs') ? clampInt(byId('hp-bt-epochs').value, 1, 100, 5) : 5),
+      batch_size: (byId('hp-bt-batch') ? clampInt(byId('hp-bt-batch').value, 1, 256, 8) : 8),
+    };
+
+    const resp = await fetch("{% url 'project5:train_reward_now' %}", {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+      body: JSON.stringify(body)
+    });
+    const data = await resp.json();
+
+    if (!resp.ok || !data.ok) {
+      throw new Error(data.error || 'Server error');
+    }
+
+    const m = data.metrics || {};
+    const pairs = (typeof m.n_pairs === 'number') ? m.n_pairs : '—';
+    const loss  = (typeof m.loss === 'number') ? m.loss : null;
+    const hist  = Array.isArray(m.history) ? m.history : null;
+
+    // Prefer plotting the full history if available
+    if(hist && hist.length){
+      // expect history items like {epoch, loss}
+      // drawBTPlot(hist);
+      const last = hist[hist.length-1]?.loss;
+      setBTStatus(`✅ BT done — epochs: ${hist.length}, pairs: ${pairs}, final loss: ${typeof last==='number' ? last.toFixed(3) : '—'}`);
+    }else{
+      // No history returned — plot a single point if we have final loss
+      if (typeof loss === 'number') {
+        // drawBTPlot([{epoch: 1, loss}]);
+        setBTStatus(`✅ BT done — pairs: ${pairs}, final loss: ${loss.toFixed(3)}`);
+      } else {
+        // drawBTPlot([]); // leave "No BT stats yet"
+        setBTStatus(`✅ BT done — pairs: ${pairs}`);
+      }
+    }
+
+    toast(`✅ Reward model trained.`);
+    // log(`BT trained → pairs: ${pairs}${(typeof loss==='number') ? `, loss: ${loss.toFixed(3)}` : ''}`);
+  } catch (e) {
+    setBTStatus('');
+    // drawBTPlot([]); // clear
+    toast('❌ Train Reward failed: ' + e.message);
+  } finally {
+    btn.textContent = prev;
+    btn.disabled = false;
+  }
+}
+
+
+
+async function trainRLHF(){
+  const btn = document.getElementById('btnTrainRLHF');
+  btn.disabled = true;
+  const prev = btn.textContent;
+  btn.textContent = 'Fine-tuning (RLHF)…';
+
+  const body = {
+    steps: (document.getElementById('hp-hf-steps') ? clampInt(document.getElementById('hp-hf-steps').value, 1, 200, 50) : 50),
+    gamma: (document.getElementById('hp-hf-gamma') ? clampFloat(document.getElementById('hp-hf-gamma').value, 0.80, 0.999, 0.99) : 0.99),
+    entropy: (document.getElementById('hp-hf-ent') ? clampFloat(document.getElementById('hp-hf-ent').value, 0, 0.02, 0.0015) : 0.0015),
+    kl_coef: (document.getElementById('hp-hf-kl') ? clampFloat(document.getElementById('hp-hf-kl').value, 0, 0.5, 0.05) : 0.05),
+    max_steps: (document.getElementById('hp-hf-max') ? clampInt(document.getElementById('hp-hf-max').value, 5, 200, 40) : 40)
+  };
+
+  setRLHFStatus('⏳ Fine-tuning with human reward (RLHF)…');
+
+  try{
+    const resp = await fetch("{% url 'project5:train_rlhf_now' %}", {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+      body: JSON.stringify(body)
+    });
+
+    // Always parse; even 400/500 might include JSON with .error
+    let data = null;
+    try { data = await resp.json(); } catch { data = null; }
+
+    if(!resp.ok || !data?.ok){
+      const msg = data?.error || `HTTP ${resp.status}`;
+      setRLHFStatus(`❌ RLHF failed — ${msg}`);
+      toast('❌ RLHF failed: ' + msg);
+      console.warn('RLHF error payload:', data);   // <- helps you verify server output
+      return;
+    }
+
+    console.log('RLHF success payload:', data);     // <- verify metrics presence/shape
+
+    // Expect { metrics: { learned_return_mean, kl_to_ref }, ckpt: ... }
+    const m = data.metrics || {};
+    const ret = (typeof m.learned_return_mean === 'number') ? m.learned_return_mean.toFixed(3) : '—';
+    const kl  = (typeof m.kl_to_ref === 'number') ? m.kl_to_ref.toFixed(4) : '—';
+
+    setRLHFStatus(`✅ RLHF done — steps: ${body.steps}, learned return: ${ret}, KL: ${kl}`);
+    toast(`✅ RLHF fine-tuning complete (${data.ckpt || 'policy_net_rlhf.pt'})`);
+    document.getElementById('policySel').value = 'rlhf';
+  }catch(e){
+    setRLHFStatus('❌ RLHF failed — ' + e.message);
+    toast('❌ RLHF failed: ' + e.message);
+    console.error(e);
+  }finally{
+    btn.textContent = prev;
+    btn.disabled = false;
+  }
+}
+
+
+  async function resetTraining(){
+    if(!confirm('This deletes all checkpoints and clears preferences. Continue?')) return;
+    try{
+      const resp = await fetch("{% url 'project5:reset_training' %}", {
+        method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf()}
+      });
+      const data = await resp.json();
+      if(!resp.ok) throw new Error(data.error || 'Server error');
+      localStorage.removeItem('p5_prefs');
+      byId('prefs-progress').textContent = 'Preferences: 0';
+      byId('policySel').value = 'random';
+      byId('modeSel').value = 'stochastic';
+      setReinforceStatus('');
+      drawReinforcePlot([]);
+      toast('🧹 Reset complete: ' + (Array.isArray(data.deleted)?data.deleted.join(', '):''));
+    }catch(e){ toast('❌ Reset failed: '+e.message); }
+  }
+
+  // ===== A/B =====
+  async function compareAB(){
+    gridAEl.innerHTML=''; gridBEl.innerHTML=''; chooseA.disabled=true; chooseB.disabled=true; chooseTie.disabled=true;
+
+    const payload = { grid: exportGridToCodes(), policy: policySel.value, mode: modeSel.value };
+    try{
+      const resp = await fetch("{% url 'project5:sample_pair' %}", {
+        method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf()}, body: JSON.stringify(payload)
+      });
+      const data = await resp.json(); if(!resp.ok) throw new Error(data?.detail||data?.error||'Server error');
+      currentPair = data;
+
+      renderCodesTo(gridAEl, data.A.frames[0].grid);
+      renderCodesTo(gridBEl, data.B.frames[0].grid);
+
+      abAria.textContent = 'Trajectory A playing';
+      await playFramesInDiv(data.A.frames, gridAEl, AB_DELAY_MS());
+      await delay(400);
+      abAria.textContent = 'Trajectory B playing';
+      await playFramesInDiv(data.B.frames, gridBEl, AB_DELAY_MS());
+
+      chooseA.disabled=false; chooseB.disabled=false; chooseTie.disabled=false;
+      abAria.textContent = 'Choose A, B, or Skip/Tie now';
+    }catch(err){ console.error(err); toast('❌ Compare failed: '+err.message); }
+  }
+
+  function AB_DELAY_MS(){ return  Math.max(80, Math.min(400, Math.round(playDelay*0.75))); }
+
+  function renderCodesTo(container, codes){
+    container.innerHTML='';
+    for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
+      const d=document.createElement('div'); d.className='cell'; d.textContent = ELEMENTS[CODE_TO_KEY[codes[r][c]]||'empty'].icon; container.appendChild(d);
+    }
+  }
+
+  function playFramesInDiv(frames, container, delayMs){
+    return new Promise(resolve=>{
+      let idx=0; const step=()=>{
+        renderCodesTo(container, frames[idx].grid); idx++;
+        if(idx>=frames.length){ resolve(); return; }
+        setTimeout(step, delayMs);
+      }; step();
+    });
+  }
+
+  async function chooseWinner(which){
+    if(!currentPair) return;
+    const body = { pair_id: currentPair.pair_id, winner: which, A: currentPair.A, B: currentPair.B, policy: policySel.value, mode: modeSel.value };
+    try{
+      const resp = await fetch("{% url 'project5:submit_pref' %}", {
+        method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf()}, body: JSON.stringify(body)
+      });
+      const res = await resp.json(); if(!resp.ok) throw new Error(res?.detail||res?.error||'Server error');
+      toast(which==='T'?'Recorded: Tie/Skip':'Recorded preference: '+which);
+      const pc = (+localStorage.getItem('p5_prefs')||0) + 1; localStorage.setItem('p5_prefs', pc); prefsProgress.textContent = `Preferences: ${pc}`;
+      chooseA.disabled=true; chooseB.disabled=true; chooseTie.disabled=true; currentPair=null;
+    }catch(err){ console.error(err); toast('❌ Submit failed: '+err.message); }
+  }
+
+  // ===== Save/Load =====
+  function exportJSON(){
+    const payload = { size: SIZE, grid: exportGridToCodes() };
+    const txt = JSON.stringify(payload, null, 2);
+    jsonOutEl.hidden=false; jsonOutEl.textContent = txt; download('grid_layout.json', txt, 'application/json');
+    toast('⬇️ Layout exported');
+  }
+
+  function importJSON(ev){
+    const file = ev.target.files[0]; if(!file) return; const reader = new FileReader();
+    reader.onload = e=>{
+      try{
+        const payload = JSON.parse(e.target.result);
+        if(!payload.size || !payload.grid) throw new Error('Invalid layout file');
+        if(payload.size !== SIZE) throw new Error(`Expected size ${SIZE}×${SIZE}, got ${payload.size}`);
+        state = payload.grid.map(row=> row.map(code=> CODE_TO_KEY[code] ?? 'empty'));
+        randomizedSinceClear = false; // require a new randomize before training after imports/edits
+        renderGrid(); updateCounters(); gateSteps(); toast('✅ Layout loaded');
+      }catch(err){ toast('❌ Import failed: '+err.message); }
     };
     reader.readAsText(file);
   }
 
-  async function saveToServer() {
-    // Adjust the URL to your Django view (e.g., project5:save_layout)
+  async function saveToServer(){
     const url = "{% url 'project5:save_layout' %}";
-    const payload = {
-      size: SIZE,
-      grid: state.map(row => row.map(k => ELEMENTS[k].code)),
-    };
-    try {
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify(payload)
-      });
-      if (!resp.ok) throw new Error('Server error');
-      const data = await resp.json();
-      alert('Saved! ID=' + data.id);
-    } catch (e) {
-      console.error(e);
-      alert('Save failed (check console). If you haven\'t created the Django view yet, you can ignore this.');
-    }
+    const payload = { size: SIZE, grid: exportGridToCodes() };
+    try{
+      const resp = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf()}, body: JSON.stringify(payload) });
+      const data = await resp.json(); if(!resp.ok) throw new Error(data?.detail||data?.error||'Server error');
+      toast('💾 Saved! ID='+data.id);
+    }catch(e){ console.error(e); toast('❌ Save failed'); }
   }
 
-  function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return '';
+  // ===== Training metrics helpers =====
+  function setBTStatus(text){ btStatusEl.textContent = text || ''; }
+
+function drawBTPlot(points){
+  // points: array like [{epoch:1, loss:0.62}, ...]
+  const ctx = btPlotCanvas.getContext('2d');
+  const W = btPlotCanvas.width, H = btPlotCanvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // axes
+  const L=40, R=10, T=10, B=25;
+  const w=W-L-R, h=H-T-B;
+  ctx.strokeStyle = '#1c3b3b'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,H-B); ctx.lineTo(W-R,H-B); ctx.stroke();
+
+  if(!points || !points.length){
+    ctx.fillStyle = '#89c'; ctx.font = '12px ui-monospace, monospace';
+    ctx.fillText('No BT stats yet', 50, H/2);
+    return;
   }
+
+  const xs = points.map((d,i)=> ('epoch' in d ? d.epoch : i+1));
+  const ys = points.map(d=> typeof d.loss==='number' ? d.loss : 0);
+
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yMin = Math.min(...ys), yMax = Math.max(...ys);
+
+  // ticks (5 each)
+  ctx.fillStyle = '#aee'; ctx.font = '11px ui-monospace, monospace';
+  for(let k=0;k<=4;k++){
+    const tx = xMin + (k*(xMax-xMin))/4;
+    const x = L + (w*(tx-xMin))/Math.max(1e-9,(xMax-xMin)||1);
+    ctx.fillText(String(Math.round(tx)), x-6, H-8);
+    ctx.fillRect(x, H-B, 1, 4);
+  }
+  for(let k=0;k<=4;k++){
+    const ty = yMin + (k*(yMax-yMin))/4;
+    const y = T + h - (h*(ty-yMin))/Math.max(1e-9,(yMax-yMin)||1);
+    ctx.fillText(String(+(Math.round(ty*1000)/1000)), 6, y+3);
+    ctx.fillRect(L-4, y, 4, 1);
+  }
+
+  // line
+  ctx.strokeStyle = '#0ff'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  points.forEach((d,i)=>{
+    const xVal = ('epoch' in d ? d.epoch : i+1);
+    const yVal = (typeof d.loss === 'number') ? d.loss : 0;
+    const x = L + (w*(xVal-xMin))/Math.max(1e-9,(xMax-xMin)||1);
+    const y = T + h - (h*(yVal-yMin))/Math.max(1e-9,(yMax-yMin)||1);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+}
+
+  function setReinforceStatus(text){ reinforceStatusEl.textContent = text||''; }
+
+  function drawReinforcePlot(stats){
+  // stats: [{update, avg_return, loss}, ...]
+  _reinforceStats = Array.isArray(stats) ? stats : []; // store for hover
+
+  const ctx = reinforcePlotCanvas.getContext('2d');
+  const W = reinforcePlotCanvas.width, H = reinforcePlotCanvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // axes
+  const L=40, R=10, T=10, B=25;
+  const w=W-L-R, h=H-T-B;
+  ctx.strokeStyle = '#1c3b3b'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,H-B); ctx.lineTo(W-R,H-B); ctx.stroke();
+
+  if(!_reinforceStats.length){
+    ctx.fillStyle = '#89c'; ctx.font = '12px ui-monospace, monospace';
+    ctx.fillText('No stats yet', 50, H/2);
+    return;
+  }
+
+  const xs = _reinforceStats.map((d,i)=> d.update ?? i);
+  const ys = _reinforceStats.map(d=> typeof d.avg_return==='number' ? d.avg_return : 0);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const yMin = Math.min(...ys), yMax = Math.max(...ys);
+
+  // ticks
+  ctx.fillStyle = '#aee'; ctx.font = '11px ui-monospace, monospace';
+  for(let k=0;k<=4;k++){
+    const t = xMin + (k*(xMax-xMin))/4;
+    const x = L + (w*(t-xMin))/Math.max(1e-9,(xMax-xMin)||1);
+    ctx.fillText(String(Math.round(t)), x-6, H-8);
+    ctx.fillRect(x, H-B, 1, 4);
+  }
+  for(let k=0;k<=4;k++){
+    const t = yMin + (k*(yMax-yMin))/4;
+    const y = T + h - (h*(t-yMin))/Math.max(1e-9,(yMax-yMin)||1);
+    ctx.fillText(String(Math.round(t)), 6, y+3);
+    ctx.fillRect(L-4, y, 4, 1);
+  }
+
+  // line
+  ctx.strokeStyle = '#0ff'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  _reinforceStats.forEach((d,i)=>{
+    const x = L + (w*(( (d.update??i)-xMin)))/Math.max(1e-9,(xMax-xMin)||1);
+    const y = T + h - (h*(( (typeof d.avg_return==='number'?d.avg_return:0)-yMin)))/Math.max(1e-9,(yMax-yMin)||1);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // ensure hover is active
+  enableReinforceHover();
+}
+
+
+  byId('hp-fast').addEventListener('click', ()=>{ setHP({r:{u:8,b:16,g:0.98,e:0.0005,m:30}, bt:{e:2,b:8}, hf:{s:20,g:0.99,e:0.001,kl:0.03,m:30}}); toast('⚡ Fast preset'); });
+byId('hp-bal').addEventListener('click', ()=>{ setHP({r:{u:20,b:32,g:0.99,e:0.001,m:40}, bt:{e:5,b:8}, hf:{s:50,g:0.99,e:0.0015,kl:0.05,m:40}}); toast('✅ Balanced preset'); });
+byId('hp-thor').addEventListener('click', ()=>{ setHP({r:{u:60,b:64,g:0.995,e:0.002,m:60}, bt:{e:15,b:16}, hf:{s:120,g:0.995,e:0.002,kl:0.08,m:60}}); toast('🧪 Thorough preset'); });
+
+function setHP(cfg){
+  if(cfg.r){ byId('hp-r-updates').value = cfg.r.u; byId('hp-r-batch').value = cfg.r.b; byId('hp-r-gamma').value = cfg.r.g; byId('hp-r-ent').value = cfg.r.e; byId('hp-r-max').value = cfg.r.m; }
+  if(cfg.bt){ byId('hp-bt-epochs').value = cfg.bt.e; byId('hp-bt-batch').value = cfg.bt.b; }
+  if(cfg.hf){ byId('hp-hf-steps').value = cfg.hf.s; byId('hp-hf-gamma').value = cfg.hf.g; byId('hp-hf-ent').value = cfg.hf.e; byId('hp-hf-kl').value = cfg.hf.kl; byId('hp-hf-max').value = cfg.hf.m; }
+}
+
+  // ===== Utils =====
+  function byId(id){ return document.getElementById(id); }
+  function csrf(){ const m=document.cookie.match(/(?:^|; )csrftoken=([^;]+)/); return m?decodeURIComponent(m[1]):''; }
+  function delay(ms){ return new Promise(r=> setTimeout(r, ms)); }
+  function fmt(x){ return (typeof x==='number') ? x.toFixed(2) : String(x); }
+  function download(name, text, mime){ const b=new Blob([text],{type:mime}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download=name; a.click(); URL.revokeObjectURL(u); }
+  function clampInt(v, lo, hi, d){ v = parseInt(v,10); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; }
+  function clampFloat(v, lo, hi, d){ v = parseFloat(v); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; }
+
 })();
 </script>
 {% endblock %}

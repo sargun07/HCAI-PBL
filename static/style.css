@@ -1,28 +1,151 @@
-/* Navbar */
+/* =========================
+   Global Base & Resets
+   ========================= */
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  /* Step 1: Background image */
+  background: url("/static/images/background_img.png") no-repeat center center fixed;
+  background-size: cover;
+  color: #e6e9ff;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Optional graceful fallback if canvas fails to draw */
+body.fallback-bg {
+  background: radial-gradient(
+    1200px 700px at 10% 10%,
+    rgba(10,14,40,0.6),
+    rgba(12,18,55,0.6)
+  );
+}
+
+/* =========================
+   Background Canvas Layer
+   ========================= */
+#bg-canvas {
+  /* Step 2: Animation sits ABOVE background image but BELOW content */
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  pointer-events: none; /* don't block clicks */
+}
+
+/* Content must always sit above canvas */
+.navbar,
+.grid-parent,
+main,
+footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* =========================
+   Navbar
+   ========================= */
 .navbar {
-    display: flex;
-    justify-content: space-between;
-    padding: 20px 50px;
-    background: rgba(16, 21, 64, 0.8);
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 50px;
+  background: rgba(16, 21, 64, 0.75);
+  align-items: center;
+  position: sticky;
+  top: 0;
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  z-index: 10; /* higher than canvas */
 }
 
 .navbar .logo {
-    font-size: 1.5em;
-    font-weight: bold;
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #fff;
+}
+
+.navbar .nav-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .navbar .nav-links li {
-    display: inline;
-    margin-left: 20px;
+  display: inline-block;
+  margin-left: 20px;
 }
 
 .navbar .nav-links a {
-    color: #ccc;
-    text-decoration: none;
-    transition: color 0.3s;
+  color: #ccc;
+  text-decoration: none;
+  transition: color 0.3s, border-bottom 0.3s;
+  padding-bottom: 4px;
+  border-bottom: 2px solid transparent;
 }
 
-.navbar .nav-links a:hover {
-    color: #0ff;
+.navbar .nav-links a:hover,
+.navbar .nav-links a.active {
+  color: #0ff;
+  border-bottom: 2px solid #0ff;
+}
+
+/* =========================
+   Helpers
+   ========================= */
+
+/* Centered container */
+.container {
+  width: min(1100px, 92vw);
+  margin-inline: auto;
+}
+
+/* Ensure media doesn't overflow */
+img, video, canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ... keep your existing CSS above ... */
+
+/* Navbar already space-between: logo left, links right */
+.nav-inner{
+  display:flex;justify-content:space-between;align-items:center;
+}
+
+/* Upgrade the name block on the hero */
+.name-center{
+  font-size: clamp(22px, 4.2vw, 44px);
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: none;
+  margin-top: 6px;
+  margin-bottom: 8px;           /* space below the name as requested */
+  line-height: 1.1;
+  background: linear-gradient(90deg, #e6e9ff 0%, #9eefff 40%, #00ffff 80%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;            /* gradient text */
+  filter: drop-shadow(0 2px 8px rgba(0,255,255,0.2));
+}
+
+/* Optional subtle caption under the name */
+.name-caption{
+  margin-top: 6px;
+  margin-bottom: 14px;
+  font-size: clamp(12px, 1.6vw, 14px);
+  color: #cfe8ff;
+  opacity: 0.9;
+}
+
+.nav-links {
+  margin-left: auto; /* pushes links to the far right */
 }

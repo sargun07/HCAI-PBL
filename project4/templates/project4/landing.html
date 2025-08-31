@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'project4/style.css' %}">
+<style>
+  /* Jumbotron that matches your theme */
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: url("/static/home/images/background_img.png") no-repeat center center fixed;
+    background-size: cover;
+    color: #fff;
+    overflow-x: hidden;
+}
+.page-title {
+    text-align: center;
+    color: #0ff;
+    font-size: 2.2em;
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+
+.project-nav {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.project-link {
+    background-color: #0ff;
+    color: #000;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.project-link:hover {
+    background-color: #00cccc;
+}
+
+  .jumbotron {
+    min-height: 55vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 0;
+    margin-top: -10%;
+  }
+  .hero-card {
+    background: var(--card);
+    color: var(--text);
+    border-radius: 18px;
+    box-shadow: 0 12px 28px var(--shadow);
+    max-width: 860px;
+    width: 100%;
+    padding: 28px 26px;
+    text-align: center;
+    margin: 0 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .hero-card h2 {
+    margin: 0 0 8px 0;
+    font-weight: 700;
+  }
+  .about-lead {
+    color: var(--muted);
+    margin: 0 0 12px 0;
+  }
+  /* Center the list visually, but keep items left-aligned for readability */
+  .about-list-wrap {
+    display: flex;
+    justify-content: center;
+  }
+  .about-list {
+    display: inline-block;
+    text-align: left;
+    margin: 0;
+    padding-left: 1.25rem; /* numbered list indent */
+  }
+  .about-list li {
+    margin: 10px 0 16px;
+    line-height: 1.5;
+  }
+  .link-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  .page-title {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .page-subtitle {
+    text-align: center;
+    color: var(--muted);
+    margin-top: -6px;
+    margin-bottom: 18px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Project 4 — Recommender Systems</h1>
+<!-- <p class="page-subtitle">Guided active learning for cold-start movie recommendation</p> -->
+
+<div class="project-nav" style="justify-content:center; gap:10px;">
+  <a href="{% url 'project1:index' %}" class="project-link">Project 1</a>
+  <a href="{% url 'project2:index' %}" class="project-link">Project 2</a>
+  <a href="{% url 'project3:index' %}" class="project-link">Project 3</a>
+  <a href="{% url 'project4:index' %}" class="project-link">Project 4</a>
+  <a href="{% url 'project5:index' %}" class="project-link">Project 5</a>
+</div>
+
+<div class="jumbotron">
+  <section class="hero-card">
+    <h2>Welcome</h2>
+    <p class="lead">
+      This mini-study explores how a recommender learns your taste when you’re brand new.
+      As you rate a few movies, the interface may show a small “what-if” preview—how a low vs. high rating
+      could change your future suggestions. The goal is to see whether this kind of transparency helps people
+      get better recommendations, faster.
+    </p>
+
+    <div class="link-row">
+      <a class="btn primary" href="{% url 'project4:study' %}">Start the study</a>
+      <a class="btn" href="{% static 'project4/Project4_Method_And_UserStudy.pdf' %}" download>
+        Download the PDF (Tasks 1–2)
+      </a>
+    </div>
+  </section>
+</div>
+{% endblock %}

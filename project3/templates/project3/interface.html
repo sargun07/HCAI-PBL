@@ -1,0 +1,407 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'project3/style.css' %}">
+{% endblock %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+
+{% block content %}
+<h1 class="page-title">Project 3: Explainable AI</h1>
+
+<div class="project-nav">
+    <a href="{% url 'project1:index' %}" class="project-link">Project 1</a>
+    <a href="{% url 'project2:index' %}" class="project-link">Project 2</a>
+    <a href="{% url 'project3:index' %}" class="project-link">Project 3</a>
+    <a href="{% url 'project4:index' %}" class="project-link">Project 4</a>
+    <a href="{% url 'project5:index' %}" class="project-link">Project 5</a>
+</div>
+
+<div class="container">
+
+  <section id="p3-head" class="glass card">
+    
+    <p class="muted">
+      Explore the accuracy–simplicity trade-off on the Palmer Penguins dataset. We compare:
+      <b>Decision Trees</b>, <b>GOSDT (optimal sparse trees)</b>, and
+      <b>Logistic Regression (L1)</b>, then generate <b>Counterfactual Explanations</b>.
+    </p>
+  </section>
+
+  <div class="grid grid-3col">
+    <!-- Controls -->
+    <section class="glass card sticky">
+      <h3>Controls</h3>
+      <p class="muted">Choose model complexity and click <b>Train</b>. We’ll fit models server-side and return metrics & visuals.</p>
+
+      <div class="glass subcard">
+        <h4>Decision Tree (sklearn)</h4>
+        <div class="slider-row">
+          <label for="p3_dt_depth">Max depth</label>
+          <input id="p3_dt_depth" type="range" min="1" max="12" step="1" value="3">
+          <span class="pill mono" id="p3_dt_depth_v">3</span>
+        </div>
+        <p class="muted">Deeper trees can capture more patterns but become more complex (more leaves).</p>
+      </div>
+
+      <div class="glass subcard">
+        <h4>Logistic Regression (L1)</h4>
+        <div class="slider-row">
+          <label for="p3_lr_lambda">λ (sparsity)</label>
+          <input id="p3_lr_lambda" type="range" min="0" max="1" step="0.01" value="0.10">
+          <span class="pill mono" id="p3_lr_lambda_v">0.10</span>
+        </div>
+        <p class="muted">
+          Higher <span class="mono">λ</span> ⇒ stronger sparsity (fewer non-zero coefficients).
+          Internally we map to <span class="mono">C = 1/(λ+ε)</span>.
+        </p>
+      </div>
+
+      <div class="glass subcard">
+        <h4>GOSDT (Optimal Sparse Tree)</h4>
+        <div class="slider-row">
+          <label for="p3_gosdt_lambda">λ (regularization)</label>
+          <input id="p3_gosdt_lambda" type="range" min="0" max="0.10" step="0.005" value="0.01">
+          <span class="pill mono" id="p3_gosdt_lambda_v">0.010</span>
+        </div>
+        <p class="muted">
+          Encourages smaller trees. We threshold-binarize numeric features as required by GOSDT.
+        </p>
+      </div>
+
+      <div class="actions">
+        <button id="p3_btn_train" class="btn primary">
+          <span id="p3_btn_label">Train</span>
+          <span id="p3_btn_spin" class="spin" aria-hidden="true" style="display:none;"></span>
+        </button>
+        <div id="p3_err" class="error"></div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="glass card">
+      <h3>Results</h3>
+
+      <div class="grid grid-3metric">
+        <div class="metric-card">
+          <div class="label">Decision Tree</div>
+          <div class="metric"><span id="p3_m_tree_acc">—</span></div>
+          <div class="muted">Leaves: <span id="p3_m_tree_leaves">—</span></div>
+        </div>
+
+        <div class="metric-card">
+          <div class="label">Logistic (L1)</div>
+          <div class="metric"><span id="p3_m_lr_acc">—</span></div>
+          <div class="muted">Used features: <span id="p3_m_lr_used">—</span></div>
+        </div>
+
+        <div class="metric-card">
+          <div class="label">GOSDT</div>
+          <div class="metric"><span id="p3_m_gosdt_acc">—</span></div>
+          <div class="muted">Leaves: <span id="p3_m_gosdt_leaves">—</span></div>
+        </div>
+      </div>
+
+      <details class="debug">
+        <summary>Raw JSON (debug)</summary>
+        <pre id="p3_dump">—</pre>
+      </details>
+
+      <div class="explain">
+        <h4>What do these numbers mean?</h4>
+        <ul class="muted">
+          <li><b>Accuracy</b>: test-set classification accuracy.</li>
+          <li><b>Leaves</b>: a proxy for tree complexity — fewer leaves ⇒ simpler rules ⇒ easier to explain.</li>
+          <li><b>Used features</b> (Logistic L1): number of features with non-zero weights across classes.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Visualization & Coefficients -->
+    <section class="glass card">
+      <h3>Model Visuals</h3>
+
+      <div class="viz">
+        <h4>Decision Tree</h4>
+        <div class="img-wrap">
+          <img id="p3_tree_img" src="" alt="Decision Tree" style="display:none;">
+          <div id="p3_tree_noimg" class="muted">Train to render a tree.</div>
+        </div>
+      </div>
+
+      <div class="coeffs">
+        <h4>Logistic Regression – Top Weights (per class)</h4>
+        <div id="p3_coef_tabs" class="tabs"></div>
+        <div id="p3_coef_body" class="coef-body"></div>
+        <p class="muted small">
+          Positive weights push the prediction towards the class; negative weights push away. Magnitude indicates strength.
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Counterfactuals -->
+  <section class="glass card">
+    <h3>Counterfactual Explanations</h3>
+    <p class="muted">
+      Pick a test example and a target species. We sample local candidates and rank those that flip the prediction
+      by <b>MAD-weighted L1</b> distance (lower = smaller, more plausible change). Then we show the top-k.
+    </p>
+
+    <div class="grid grid-4col form-row">
+      <label>Sample #
+        <input id="p3_cf_idx" type="number" min="0" step="1" value="0">
+      </label>
+      <label>Target
+        <select id="p3_cf_target">
+          <option value="Adelie">Adelie</option>
+          <option value="Chinstrap">Chinstrap</option>
+          <option value="Gentoo">Gentoo</option>
+        </select>
+      </label>
+      <label>Top-K
+        <input id="p3_cf_k" type="number" min="1" value="3">
+      </label>
+      <label>Model
+        <select id="p3_cf_model">
+          <option value="logreg">Logistic (L1)</option>
+          <option value="tree">Decision Tree</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button id="p3_btn_cf" class="btn">Generate</button>
+      <div id="p3_cf_err" class="error"></div>
+    </div>
+
+    <div id="p3_cf_results" class="cf-list"></div>
+
+    <details class="debug">
+      <summary>Raw counterfactual JSON</summary>
+      <pre id="p3_cf_dump">—</pre>
+    </details>
+
+    <div class="explain">
+      <h4>How to read counterfactuals</h4>
+      <ul class="muted">
+        <li><b>Cost</b> = ∑<sub>numeric</sub> |Δ|/MAD + ∑<sub>categorical</sub> 1{changed}. Lower is better.</li>
+        <li><b>Changes</b> show the minimal edits that flip the prediction to the target class.</li>
+        <li>For Logistic, we also show <b>confidence</b> of the new prediction.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Guide -->
+  <section class="glass card">
+    <h3>Explainability Guide</h3>
+    <ol class="muted">
+      <li><b>Loss + λ·Complexity</b> ⇒ we balance accuracy and interpretability by tuning <span class="mono">λ</span>.</li>
+      <li><b>Decision Trees</b> ⇒ interpretable if shallow; leaves ≈ rule count.</li>
+      <li><b>GOSDT</b> ⇒ optimizes for globally sparse trees; requires binary features (we threshold numerics).</li>
+      <li><b>Logistic (L1)</b> ⇒ drives small/irrelevant weights to zero → fewer used features.</li>
+      <li><b>Counterfactuals</b> ⇒ local “what-if” edits ranked by MAD-weighted L1 proximity.</li>
+    </ol>
+  </section>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+(function() {
+  // ---------- helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const fmt = (x, n=3) => (typeof x === "number" ? x.toFixed(n) : x);
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+  }
+  const csrfFromMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+const csrftoken = (() => {
+  // your existing cookie reader:
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+  }
+  return getCookie("csrftoken");
+})();
+
+
+  // ---------- elements ----------
+  const dt = $("p3_dt_depth"), dtv = $("p3_dt_depth_v");
+  const lrl = $("p3_lr_lambda"), lrlv = $("p3_lr_lambda_v");
+  const gl = $("p3_gosdt_lambda"), glv = $("p3_gosdt_lambda_v");
+
+  const btnTrain = $("p3_btn_train"), spin = $("p3_btn_spin"), label = $("p3_btn_label"), err = $("p3_err");
+  const mTreeAcc = $("p3_m_tree_acc"), mTreeLeaves = $("p3_m_tree_leaves");
+  const mLrAcc = $("p3_m_lr_acc"), mLrUsed = $("p3_m_lr_used");
+  const mGAcc = $("p3_m_gosdt_acc"), mGLeaves = $("p3_m_gosdt_leaves");
+  const dump = $("p3_dump");
+  const treeImg = $("p3_tree_img"), treeNo = $("p3_tree_noimg");
+
+  const cfIdx = $("p3_cf_idx"), cfTarget = $("p3_cf_target"), cfK = $("p3_cf_k"), cfModel = $("p3_cf_model");
+  const btnCF = $("p3_btn_cf"), cfErr = $("p3_cf_err"), cfList = $("p3_cf_results"), cfDump = $("p3_cf_dump");
+
+  const coefTabs = $("p3_coef_tabs"), coefBody = $("p3_coef_body");
+
+  // live slider text
+  dt.addEventListener("input", () => dtv.textContent = dt.value);
+  lrl.addEventListener("input", () => lrlv.textContent = (+lrl.value).toFixed(2));
+  gl.addEventListener("input", () => glv.textContent = (+gl.value).toFixed(3));
+
+  // ---------- train ----------
+  btnTrain.addEventListener("click", async () => {
+    err.textContent = "";
+    btnTrain.disabled = true; spin.style.display = ""; label.textContent = "Training…";
+
+    try {
+      const res = await fetch("{% url 'project3:train_api' %}", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-CSRFToken": csrftoken, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dt_max_depth: Number(dt.value),
+          lr_lambda: Number(lrl.value),
+          gosdt_lambda: Number(gl.value)
+        })
+      });
+      if (!res.ok) {
+  let txt = "";
+  try { txt = await res.text(); } catch {}
+  throw new Error(`HTTP ${res.status}${txt ? " – " + txt : ""}`);
+}
+const data = await res.json();
+    
+
+      // metrics
+      if (data.tree) {
+        mTreeAcc.textContent = data.tree.accuracy != null ? fmt(data.tree.accuracy) : "—";
+        mTreeLeaves.textContent = data.tree.leaves ?? "—";
+        if (data.tree.image) {
+          treeImg.src = data.tree.image + "?t=" + Date.now();
+          treeImg.style.display = ""; treeNo.style.display = "none";
+        }
+      }
+      if (data.logreg) {
+        mLrAcc.textContent = data.logreg.accuracy != null ? fmt(data.logreg.accuracy) : "—";
+        mLrUsed.textContent = data.logreg.used_features ?? "—";
+        renderCoefTable(data.logreg.top_coefficients || []);
+      }
+      if (data.gosdt) {
+        if (data.gosdt.available) {
+          mGAcc.textContent = data.gosdt.accuracy != null ? fmt(data.gosdt.accuracy) : "—";
+          mGLeaves.textContent = data.gosdt.leaves ?? "—";
+        } else {
+          mGAcc.textContent = "N/A"; mGLeaves.textContent = "N/A";
+        }
+      }
+      dump.textContent = JSON.stringify(data, null, 2);
+
+    } catch (e) {
+      console.error(e);
+      err.textContent = e.message || e;
+
+    } finally {
+      btnTrain.disabled = false; spin.style.display = "none"; label.textContent = "Train";
+    }
+  });
+
+  // ---------- coefficients ----------
+  function renderCoefTable(byClass) {
+    coefTabs.innerHTML = "";
+    coefBody.innerHTML = "";
+    if (!byClass.length) {
+      coefBody.innerHTML = '<div class="muted">Train to see weights.</div>';
+      return;
+    }
+    byClass.forEach((row, i) => {
+      const tab = document.createElement("button");
+      tab.className = "tab" + (i===0 ? " active" : "");
+      tab.textContent = row.class;
+      tab.onclick = () => { setActive(i); };
+      coefTabs.appendChild(tab);
+    });
+    setActive(0);
+    function setActive(idx) {
+      [...coefTabs.children].forEach((b,j)=>b.classList.toggle("active", j===idx));
+      const r = byClass[idx];
+      coefBody.innerHTML = `
+        <div class="coef-cols">
+          <div>
+            <div class="label">Top + weights</div>
+            ${renderList(r.top_positive)}
+          </div>
+          <div>
+            <div class="label">Top − weights</div>
+            ${renderList(r.top_negative)}
+          </div>
+        </div>`;
+    }
+    function renderList(items){
+      if (!items || !items.length) return '<div class="muted small">None</div>';
+      return '<ul class="coef-list">' + items.map(it =>
+        `<li><span class="feat mono">${it.feature}</span><span class="wgt mono">${fmt(it.weight, 4)}</span></li>`
+      ).join('') + '</ul>';
+    }
+  }
+
+  // ---------- counterfactuals ----------
+  btnCF.addEventListener("click", async () => {
+    cfErr.textContent = "";
+    cfList.innerHTML = '<div class="muted">Searching…</div>';
+    try {
+      const res = await fetch("{% url 'project3:counterfactuals_api' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: cfModel.value,
+          lr_lambda: Number(lrl.value),
+          dt_max_depth: Number(dt.value),
+          index: Number(cfIdx.value),
+          target: cfTarget.value,
+          k: Number(cfK.value)
+        })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      cfDump.textContent = JSON.stringify(data, null, 2);
+      renderCF(data.counterfactuals || []);
+    } catch (e) {
+      console.error(e);
+      cfErr.textContent = e.message || e;
+      cfList.innerHTML = "";
+    }
+  });
+
+  function renderCF(list) {
+    if (!list.length) {
+      cfList.innerHTML = '<div class="muted">No counterfactuals found. Try a different index/target or relax constraints.</div>';
+      return;
+    }
+    cfList.innerHTML = list.map((cf,i) => {
+      const changes = cf.changes || {};
+      const rows = Object.keys(changes).map(k => {
+        const delta = `${changes[k].from} → ${changes[k].to}`;
+        return `<tr><td class="mono">${k}</td><td class="mono">${delta}</td></tr>`;
+      }).join('');
+      return `
+        <div class="cf-card">
+          <div class="cf-head">
+            <div><b>#${i+1}</b></div>
+            <div>Cost: <span class="pill mono">${fmt(cf.cost, 4)}</span>
+              ${cf.confidence != null ? `&nbsp;|&nbsp; Conf.: <span class="pill mono">${fmt(cf.confidence,3)}</span>` : ""}</div>
+          </div>
+          <table class="cf-table">
+            <thead><tr><th>Feature</th><th>Change</th></tr></thead>
+            <tbody>${rows || `<tr><td colspan="2" class="muted">No changes?</td></tr>`}</tbody>
+          </table>
+        </div>`;
+    }).join('');
+  }
+})();
+</script>
+{% endblock %}

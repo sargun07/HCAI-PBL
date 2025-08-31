@@ -1,0 +1,533 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'project4/style.css' %}">
+<style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: url("/static/home/images/background_img.png") no-repeat center center fixed;
+    background-attachment: scroll;
+    background-size: 100% auto; 
+     margin: 0;
+  padding: 0;
+    color: #fff;
+    overflow-x: hidden;
+  }
+  .page-title {
+    text-align: center;
+    color: #0ff;
+    font-size: 2.2em;
+    margin-top: 30px;
+    margin-bottom: 20px;
+  }
+  .project-nav {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+  }
+  .project-link {
+    background-color: #0ff;
+    color: #000;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+  }
+  .project-link:hover { background-color: #00cccc; }
+
+  /* Centered single-column stage */
+  .stage { max-width: 820px; margin: 0 auto; }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+
+  /* Hide/show utility */
+  .hidden { display: none !important; }
+
+  /* Consent text box */
+  .consent-text {
+    max-height: 200px;
+    overflow: auto;
+    background: #0f1328;
+    border: 1px solid #2b335e;
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text);
+  }
+  .muted { color: #cdd3eb; }
+
+  /* Small toolbar row */
+  .toolbar { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+
+  /* Counter badge */
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #273055;
+    color: #cfd6e6;
+    font-size: 12px;
+    margin-left: 6px;
+  }
+
+  /* Center text in cards */
+  .card h2, .card p, .movie-title { text-align: center; }
+
+  /* What-if preview */
+  .whatif-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .what-if .box {
+    border: 1px solid #2b335e;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: rgba(15,19,40,0.7);
+    min-height: 80px;
+  }
+  .what-if h4 { margin: 0 0 6px 0; color: #9fc3ff; }
+
+  /* Recommendations */
+  .table-wrapper {
+    border: 1px solid #2b335e;
+    border-radius: 12px;
+    background: rgba(15,19,40,0.7);
+    padding: 10px 12px;
+  }
+  table.table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  table.table th, table.table td {
+    border-bottom: 1px dashed #2b335e;
+    padding: 8px 6px;
+    text-align: left;
+  }
+  table.table th { color: #9fc3ff; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Project 4: Recommender Systems</h1>
+
+<div class="project-nav" style="justify-content:center; gap:10px;">
+  <a href="{% url 'project1:index' %}" class="project-link">Project 1</a>
+  <a href="{% url 'project2:index' %}" class="project-link">Project 2</a>
+  <a href="{% url 'project3:index' %}" class="project-link">Project 3</a>
+  <a href="{% url 'project4:index' %}" class="project-link">Project 4</a>
+  <a href="{% url 'project5:index' %}" class="project-link">Project 5</a>
+</div>
+<p style="text-align:center; margin:6px 0 16px;">
+  <a href="{% url 'project4:index' %}" style="color: white;">← Back to Landing</a>
+</p>
+
+<div class="stage">
+  {% if model_error %}
+    <div class="alert error">
+      <strong>Model load error:</strong> {{ model_error }}
+    </div>
+  {% endif %}
+
+  <div class="stack">
+    <!-- CONSENT (visible on load) -->
+    <section class="card" id="consent-card">
+      <h2>Consent</h2>
+      <div class="consent-text">
+        <p class="muted">
+          This mini-study evaluates a movie recommender when you’re brand new (the “cold start”).
+          You’ll rate a few movies (0.5–5), optionally see “what-if” previews of how your rating could change future suggestions,
+          then check your personalized recommendations. Participation is anonymous; no login or personal data is collected.
+        </p>
+        <ul class="muted" style="margin-top:8px;">
+          <li>Time: ~3–5 minutes</li>
+          <li>Data: in-session ratings; optional short feedback</li>
+          <li>Voluntary: you may stop any time</li>
+        </ul>
+      </div>
+      <div class="toolbar">
+        <label>
+          <input type="checkbox" id="consent-checkbox">
+          I have read the information above and agree to participate.
+        </label>
+        <button id="btn-consent" class="btn">I Agree</button>
+        <span id="consent-status" class="pill">Not consented</span>
+        <span id="loading" class="loading" hidden>Loading…</span>
+      </div>
+      <p id="assign-status" class="muted" style="text-align:center; margin:8px 0 0;"></p>
+    </section>
+
+    <!-- RATING + WHAT-IF + INLINE RECS (hidden until consent) -->
+    <section class="card hidden" id="rating-card">
+      <h2>
+        Rate Movies
+        <span class="badge">Ratings given: <span id="rating-count">0</span></span>
+      </h2>
+
+      <!-- Current movie & rating -->
+      <div id="movie-box" class="movie-box" style="margin-top:8px;">
+        <div id="movie-title" class="movie-title muted">Waiting for consent…</div>
+
+        <div class="rating-row" style="justify-content:center;">
+          <label for="rating-input">Your rating:</label>
+          <input id="rating-input" type="range" min="0.5" max="5" value="3" step="0.5" disabled/>
+          <span id="rating-val">3.0</span>
+        </div>
+
+        <div class="toolbar">
+          <button id="btn-next" class="btn" disabled>Next Movie</button>
+          <button id="btn-submit" class="btn primary" disabled>Submit Rating</button>
+          <button id="btn-done" class="btn">Done</button>
+        </div>
+
+        <!-- What-if guidance -->
+        <div id="what-if" class="what-if" hidden>
+          <h3>What if your answer is low vs. high?</h3>
+          <p id="whatif-effect" class="muted" style="text-align:center; margin-top:-6px;"></p>
+          <div class="whatif-cols">
+            <div>
+              <h4>Rate it low (0.5)</h4>
+              <div class="box">
+                <ol id="whatif-low"></ol>
+              </div>
+            </div>
+            <div>
+              <h4>Rate it high (5.0)</h4>
+              <div class="box">
+                <ol id="whatif-high"></ol>
+              </div>
+            </div>
+          </div>
+          <p class="muted" style="text-align:center; margin-top:6px;">
+            We preview two extremes (0.5 vs 5). Your actual rating will adjust recommendations accordingly.
+          </p>
+        </div>
+      </div>
+
+      <!-- INLINE RECOMMENDATIONS -->
+      <div class="section" id="recs-section" style="margin-top:16px;">
+        <h2 style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Your Top-10 Recommendations</span>
+          <span id="recs-note" class="muted" style="font-size:12px;"></span>
+        </h2>
+        <div class="table-wrapper" style="margin-top:10px; text-align:center;">
+          <div id="recs-table"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SURVEY (hidden until Done) -->
+    <section class="card hidden" id="survey-card">
+      <h2>Quick Feedback</h2>
+      <p class="muted" style="text-align:center; margin-top:-4px;">
+        A short note helps us understand how the interface felt beyond the numbers.
+      </p>
+      <textarea id="feedback" rows="4" placeholder="How was this interface? Any suggestions?"></textarea>
+      <div class="toolbar">
+        <button id="btn-survey" class="btn">Submit feedback</button>
+        <span id="survey-status" class="pill">Not sent</span>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  /* =========================
+     CSRF + Fetch helpers
+     ========================= */
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  async function postJSON(url, data = {}) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrftoken
+      },
+      body: JSON.stringify(data)
+    });
+    let payload;
+    try { payload = await res.json(); }
+    catch { payload = { _text: await res.text() }; }
+    return { ok: res.ok, status: res.status, data: payload };
+  }
+
+  async function getJSON(url) {
+    const res = await fetch(url, { headers: { 'X-CSRFToken': csrftoken } });
+    let payload;
+    try { payload = await res.json(); }
+    catch { payload = { _text: await res.text() }; }
+    return { ok: res.ok, status: res.status, data: payload };
+  }
+
+  // Be tolerant to different backend shapes
+  function isOk(resp) {
+    const d = resp?.data || {};
+    return resp?.ok === true ||
+           d.ok === true || d.success === true || d.status === 'ok' ||
+           typeof d.movieId === 'number' || d.done === false;
+  }
+
+  /* =========================
+     DOM elements
+     ========================= */
+  const consentCard     = document.getElementById('consent-card');
+  const consentCheckbox = document.getElementById('consent-checkbox');
+  const btnConsent      = document.getElementById('btn-consent');
+  const consentStatus   = document.getElementById('consent-status');
+  const assignStatus    = document.getElementById('assign-status');
+  const loading         = document.getElementById('loading');
+
+  const ratingCard  = document.getElementById('rating-card');
+  const movieTitle  = document.getElementById('movie-title');
+  const ratingInput = document.getElementById('rating-input');
+  const ratingVal   = document.getElementById('rating-val');
+  const btnNext     = document.getElementById('btn-next');
+  const btnSubmit   = document.getElementById('btn-submit');
+
+  const whatIf        = document.getElementById('what-if');
+  const whatLow       = document.getElementById('whatif-low');
+  const whatHigh      = document.getElementById('whatif-high');
+  const whatIfEffect  = document.getElementById('whatif-effect');
+
+  const recsTable = document.getElementById('recs-table');
+  const recsNote  = document.getElementById('recs-note');
+
+  const btnDone      = document.getElementById('btn-done');
+  const surveyCard   = document.getElementById('survey-card');
+  const feedback     = document.getElementById('feedback');
+  const btnSurvey    = document.getElementById('btn-survey');
+  const surveyStatus = document.getElementById('survey-status');
+  const ratingCountEl= document.getElementById('rating-count');
+
+  /* =========================
+     State
+     ========================= */
+  let ratingCount   = 0;
+  let assignedGroup = 'control';
+
+  ratingInput.addEventListener('input', () => {
+    ratingVal.textContent = Number(ratingInput.value).toFixed(1);
+  });
+
+  /* =========================
+     Render helpers
+     ========================= */
+  function renderEmptyRecsPlaceholder() {
+    recsTable.innerHTML = '<p class="muted" style="margin:8px 0;">Provide at least one rating to see recommendations.</p>';
+    recsNote.textContent = 'Recommendations appear after your first rating.';
+  }
+
+  function renderRecs(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      recsTable.innerHTML = '<p class="muted" style="margin:8px 0;">No recommendations yet. Please rate a few more movies.</p>';
+      return;
+    }
+    const rows = items.slice(0,10).map((x, i) =>
+      `<tr><td>${i+1}</td><td>${x.title}</td><td>${Number(x.score).toFixed(3)}</td></tr>`
+    ).join('');
+    recsTable.innerHTML = `
+      <table class="table">
+        <thead><tr><th>#</th><th>Title</th><th>Score</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function renderWhatIfPayload(payload) {
+    // Always show the block; content depends on group/payload.
+    whatIf.hidden = false;
+    whatLow.innerHTML = '';
+    whatHigh.innerHTML = '';
+    whatIfEffect.textContent = '';
+
+    // Control group: explain hidden-by-design
+    if (assignedGroup !== 'treatment') {
+      whatLow.innerHTML  = `<li class="muted">Guidance is hidden in CONTROL group.</li>`;
+      whatHigh.innerHTML = `<li class="muted">Ask the study admin to assign TREATMENT for previews.</li>`;
+      return;
+    }
+
+    // Treatment but no payload
+    if (!payload || (!Array.isArray(payload.low) && !Array.isArray(payload.high))) {
+      whatLow.innerHTML  = `<li class="muted">No preview available for this item.</li>`;
+      whatHigh.innerHTML = `<li class="muted">Try rating or skipping to the next movie.</li>`;
+      return;
+    }
+
+    // Treatment + payload
+    (payload.low  || []).slice(0,5).forEach((it) => {
+  const title = (it && typeof it === 'object') ? it.title : Array.isArray(it) ? it[0] : String(it);
+  const li = document.createElement('li'); li.textContent = title; whatLow.appendChild(li);
+});
+(payload.high || []).slice(0,5).forEach((it) => {
+  const title = (it && typeof it === 'object') ? it.title : Array.isArray(it) ? it[0] : String(it);
+  const li = document.createElement('li'); li.textContent = title; whatHigh.appendChild(li);
+});
+
+    if (typeof payload.effect === 'number') {
+      const pct = Math.round(payload.effect * 100);
+      whatIfEffect.textContent = `Your rating could alter about ${pct}% of your top suggestions.`;
+    }
+  }
+
+  /* =========================
+     API flows
+     ========================= */
+  async function refreshRecommendations() {
+    if (ratingCount === 0) { renderEmptyRecsPlaceholder(); return; }
+    const r = await postJSON("{% url 'project4:recommendations' %}", {});
+    if (!isOk(r)) {
+      console.error('recommendations response:', r);
+      recsTable.innerHTML = `<p class="muted">Could not fetch recommendations (${r.status}).</p>`;
+      return;
+    }
+    const items = r.data.items || r.data; // tolerate either shape
+    renderRecs(items);
+    recsNote.textContent = 'Auto-updated after your last rating.';
+  }
+
+  async function fetchNext() {
+    try {
+      loading.hidden = false;
+      const r = await postJSON("{% url 'project4:next_item' %}", {}); // keep POST if your view expects POST
+      loading.hidden = true;
+
+      if (!isOk(r)) {
+        console.error('next_item response:', r);
+        alert(`Could not fetch next movie (${r.status}). ${r.data?._text || r.data?.error || ''}`);
+        renderWhatIfPayload(null); // still explain group
+        return;
+      }
+
+      const res = r.data;
+
+      if (res.done) {
+        movieTitle.textContent = "All done — no more movies to rate.";
+        btnSubmit.disabled = true;
+        btnNext.disabled = true;
+        ratingInput.disabled = true;
+        renderWhatIfPayload(null);
+        return;
+      }
+
+      movieTitle.textContent = `${res.title} (ID ${res.movieId})`;
+      btnSubmit.dataset.movieId = String(res.movieId);
+      btnSubmit.disabled = false;
+      btnNext.disabled = false;
+      ratingInput.disabled = false;
+
+      let payload = res.what_if && typeof res.what_if === 'object' ? { ...res.what_if } : null;
+      if (payload && typeof res.effect === 'number') payload.effect = res.effect;
+      renderWhatIfPayload(payload);
+
+    } catch (e) {
+      loading.hidden = true;
+      console.error('fetchNext error:', e);
+      alert("Network error while fetching next movie.");
+    }
+  }
+
+  /* =========================
+     Event handlers
+     ========================= */
+  // Consent -> assign -> show rating
+  btnConsent.addEventListener('click', async () => {
+    if (!consentCheckbox.checked) { alert("Please tick the checkbox to agree."); return; }
+    loading.hidden = false;
+
+    const c = await postJSON("{% url 'project4:consent' %}", { consent: true });
+    if (!isOk(c)) { loading.hidden = true; alert(`Consent failed (${c.status}). ${c.data?._text || c.data?.error || ''}`); return; }
+    consentStatus.textContent = "Consented"; consentStatus.classList.add('ok');
+
+    const a = await postJSON("{% url 'project4:assign' %}", {});
+    loading.hidden = true;
+    if (!isOk(a)) { alert(`Assignment failed (${a.status}). ${a.data?._text || a.data?.error || ''}`); return; }
+    assignedGroup = (a.data.group || 'control');
+    assignStatus.textContent = "Assigned to: " + assignedGroup.toUpperCase();
+
+    // Hide consent, show rating
+    consentCard.classList.add('hidden');
+    ratingCard.classList.remove('hidden');
+
+    // Before first rating, don't fetch recs — show placeholder
+    renderEmptyRecsPlaceholder();
+
+    await fetchNext();
+  });
+
+  // Next movie
+  btnNext.addEventListener('click', fetchNext);
+
+  // Submit rating
+  btnSubmit.addEventListener('click', async () => {
+    const mid = btnSubmit.dataset.movieId;
+    if (!mid) return alert("No movie selected yet.");
+    const rt = Number(ratingInput.value);
+
+    loading.hidden = false;
+    const r = await postJSON("{% url 'project4:submit_rating' %}", { movieId: mid, rating: rt });
+    loading.hidden = true;
+
+    if (!isOk(r)) {
+      console.error('submit_rating response:', r);
+      alert(`Submit failed (${r.status}). ${r.data?._text || r.data?.error || ''}`);
+      return;
+    }
+
+    ratingCount += 1;
+    ratingCountEl.textContent = String(ratingCount);
+
+    await refreshRecommendations();  // auto-update after rating
+    await fetchNext();               // move on
+  });
+
+  // Done -> open survey (hide other sections)
+  btnDone.addEventListener('click', () => {
+    ratingCard.classList.add('hidden');
+    surveyCard.classList.remove('hidden');
+    surveyCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // Submit survey -> reset UI back to consent
+  btnSurvey.addEventListener('click', async () => {
+    const text = feedback.value.trim();
+    const r = await postJSON("{% url 'project4:survey_submit' %}", { feedback: text });
+    if (!isOk(r)) {
+      console.error('survey_submit response:', r);
+      alert(`Failed to submit feedback (${r.status}). ${r.data?._text || r.data?.error || ''}`);
+      return;
+    }
+
+    surveyStatus.textContent = "Feedback sent — thanks!";
+    surveyStatus.classList.add('ok');
+
+    // Soft reset UI to consent view
+    setTimeout(() => {
+      // Clear client-side state
+      ratingCount = 0; ratingCountEl.textContent = "0";
+      feedback.value = ""; surveyStatus.textContent = "Not sent"; surveyStatus.classList.remove('ok');
+      recsTable.innerHTML = ""; movieTitle.textContent = "Waiting for consent…";
+      btnSubmit.disabled = true; btnNext.disabled = true; ratingInput.disabled = true;
+      whatIf.hidden = true; whatIfEffect.textContent = ''; whatLow.innerHTML = ''; whatHigh.innerHTML = '';
+
+      // Show consent, hide others
+      consentCard.classList.remove('hidden');
+      ratingCard.classList.add('hidden');
+      surveyCard.classList.add('hidden');
+
+      // Unlock consent controls
+      btnConsent.disabled = false; consentCheckbox.disabled = false; consentCheckbox.checked = false;
+      consentStatus.textContent = "Not consented"; consentStatus.classList.remove('ok');
+      assignStatus.textContent = "";
+    }, 600);
+  });
+</script>
+
+
+{% endblock %}

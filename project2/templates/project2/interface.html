@@ -2,190 +2,763 @@
 {% load static %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'project1/style.css' %}">
+  <!-- Reuse Project 1’s design system first, then override lightly for P2 -->
+  <link rel="stylesheet" href="{% static 'project1/style.css' %}">
+  <link rel="stylesheet" href="{% static 'project2/style.css' %}">
 {% endblock %}
 
 {% block content %}
 <h1 class="page-title">Project 2: Active Learning for Text Classification</h1>
 
-<!-- Project Navigation -->
+<!-- Project Navigation (same look as Project 1) -->
 <div class="project-nav">
-    <a href="{% url 'project1:index' %}" class="project-link">Project 1</a>
-    <a href="{% url 'project2:index' %}" class="project-link">Project 2</a>
-    <a href="{% url 'project3:index' %}" class="project-link">Project 3</a>
-    <a href="{% url 'project4:index' %}" class="project-link">Project 4</a>
-    <a href="{% url 'project5:index' %}" class="project-link">Project 5</a>
+  <a href="{% url 'project1:index' %}" class="project-link">Project 1</a>
+  <a href="{% url 'project2:index' %}" class="project-link">Project 2</a>
+  <a href="{% url 'project3:index' %}" class="project-link">Project 3</a>
+  <a href="{% url 'project4:index' %}" class="project-link">Project 4</a>
+  <a href="{% url 'project5:index' %}" class="project-link">Project 5</a>
 </div>
 
-<!-- Main Dashboard Layout -->
+<!-- Main Dashboard Layout (match P1 layout + colors) -->
 <div class="dashboard-container">
-    <!-- Sidebar -->
-    <div class="sidebar-nav" id="sidebar-nav">
-        <button class="side-button active-tab" id="btn-show-form">Build Classifier</button>
-        <button class="side-button" id="btn-show-visual">Active Learning Mode</button>
-    </div>
+  <!-- Sidebar (match P1) -->
+  <div class="sidebar-nav" id="sidebar-nav">
+    <button class="side-button active-tab" id="btn-show-form">Build Classifier</button>
+    <button class="side-button" id="btn-show-visual">Active Learning Mode</button>
+  </div>
 
-    <!-- Right Content -->
-    <div class="dashboard-content">
-        <!-- Build Classifier Section -->
+  <!-- Content panel (NOT black; uses P1 translucent panel style) -->
+  <div class="dashboard-content">
+    <!-- Build Classifier Section -->
+    <div id="build-classifier-section">
+      <div class="info-box" style="margin-top: 8px;">
+    <h3>Classifier Overview</h3>
+    <p>
+      We use a <strong>TF-IDF representation</strong> with a <strong>Linear Support Vector Machine (SVM)</strong>.
+      SVMs work well on high-dimensional sparse text, train quickly, and perform strongly even with few labels —
+      which makes them a good fit for Active Learning.
+    </p>
+    <p>
+      A pre-trained model is loaded below. You can <em>retrain from scratch</em> and
+      <em>download the model</em> at any time.
+    </p>
+  </div>
 
-        <div id="build-classifier-section">
-            <h2 style="text-align:center;">Train a Classifier on Full Dataset</h2>
-            <p style="text-align:center;">Use labeled data to train a supervised model. Accuracy will be used as a reference for active learning.</p>
+      <div class="center-buttons">
+        <button id="btn-show-summary" class="upload-button">Show Dataset Summary</button>
+        <button id="btn-show-results" class="upload-button">Show Accuracy Results</button>
+        <button id="btn-train" class="upload-button">Train / Retrain</button>
+        <span id="train-loading" style="display:none; margin-left:10px;">⏳ Training...</span>
+        <button id="btn-download" class="upload-button" style="margin-left: 12px;">
+        Download Model
+        </button>
+        <button id="btn-download-ds" class="upload-button" style="margin-left:12px;">Download Dataset</button>
+      </div>
 
-        <div class="center-buttons">
-            <button id="btn-show-summary" class="upload-button">Show Dataset Summary</button>
-            <button id="btn-show-results" class="upload-button">Show Accuracy Results</button>
-        </div>
+<!-- Dataset Summary -->
+<div id="data-summary" class="summary-box" style="margin-top:20px;">
 
-        <!-- Dataset Summary -->
-        <div id="data-summary" style="margin-top: 30px;">
-        <!-- Fills via Jinja or AJAX -->
-            <ul>
-                <li>Total Reviews: {{ total_reviews }}</li>
-                <li>Positive Reviews: {{ num_pos }}</li>
-                <li>Negative Reviews: {{ num_neg }}</li>
-            </ul>
+  {% if total_reviews %}
+    <style>
+      .summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 4fr;
+        gap: 16px;
+        align-items: start;
+      }
+      @media (max-width: 900px) {
+        .summary-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+    <div class="summary-grid">
+      <!-- Left: Data Statistics -->
+      <div class="nice-table">
+        <h3 style="text-align: center;">Data Statistics</h3>
+        <table aria-label="Data Statistics" style="margin-left: 15%;">
+          <tbody>
+            <tr><th class="nowrap">Total Reviews</th><td>{{ total_reviews }}</td></tr>
+            <tr><th class="nowrap">Positive Reviews</th><td>{{ num_pos }}</td></tr>
+            <tr><th class="nowrap">Negative Reviews</th><td>{{ num_neg }}</td></tr>
+            {% if avg_len is not None %}
+              <tr><th class="nowrap">Avg Length (tokens)</th><td>{{ avg_len|floatformat:1 }}</td></tr>
+              <tr><th class="nowrap">Min Length</th><td>{{ min_len }}</td></tr>
+              <tr><th class="nowrap">Max Length</th><td>{{ max_len }}</td></tr>
+            {% endif %}
+            {% if vocab_size %}
+              <tr><th class="nowrap">Vocabulary Size (TF-IDF)</th><td>{{ vocab_size }}</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
 
-        <table border="1" cellpadding="8" style="margin-top: 20px; width: 100%;">
+      <!-- Right: Sample Reviews -->
+      <div class="nice-table">
+        <h3 style="text-align: center;">Sample Reviews (Top 10)</h3>
+        <table aria-label="Sample Reviews" style="margin-left: 5%;">
+          <thead>
             <tr>
-                <th>Review</th>
-                <th>Sentiment</th>
+              <th>Review</th>
+              <th class="nowrap">Sentiment</th>
             </tr>
+          </thead>
+          <tbody>
             {% for row in sample_reviews %}
             <tr>
-                <td>{{ row.review|truncatewords:30 }}</td>
-                <td>{{ row.sentiment }}</td>
+              <td>{{ row.review|truncatewords:30 }}</td>
+              <td class="nowrap">{{ row.sentiment }}</td>
             </tr>
             {% endfor %}
+          </tbody>
         </table>
-        </div>
+      </div>
+    </div>
 
-            <!-- Accuracy Results -->
-        <div id="accuracy-results" style="display: none; margin-top: 30px;">
-    <h3 style="color: #0ff; text-align: center; margin-bottom: 20px;">Model Evaluation Results</h3>
+  {% else %}
+    <em>Dataset summary not cached yet. Train once to generate it, or place the dataset in <code>MEDIA_ROOT/project2/</code>.</em>
+  {% endif %}
 
-    <!-- Accuracy Score -->
-    <p style="text-align: center; font-size: 1.2em;">
-        <strong>Accuracy Score:</strong> {{ accuracy }}
-    </p>
-
-    <!-- Flex container for matrix and report -->
-    <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 40px; margin-top: 20px;">
-
-        <!-- Confusion Matrix -->
-        <div style="flex: 1; min-width: 300px;">
-            <h4 style="color: #0ff; text-align: center;">Confusion Matrix</h4>
-            <table border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; background-color: #111; color: #0ff; margin: auto;">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>Predicted: Negative</th>
-                        <th>Predicted: Positive</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th>Actual: Negative</th>
-                        <td>{{ confusion_matrix.0.0 }}</td>
-                        <td>{{ confusion_matrix.0.1 }}</td>
-                    </tr>
-                    <tr>
-                        <th>Actual: Positive</th>
-                        <td>{{ confusion_matrix.1.0 }}</td>
-                        <td>{{ confusion_matrix.1.1 }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Classification Report -->
-        <div style="flex: 1; min-width: 300px;">
-            <h4 style="color: #0ff; text-align: center;">Classification Report</h4>
-            <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; background-color: #111; color: #0ff; margin: auto;">
-                <thead>
-                    <tr>
-                        <th>Label</th>
-                        <th>Precision</th>
-                        <th>Recall</th>
-                        <th>F1-Score</th>
-                        <th>Support</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for label, metrics in report.items %}
-                        {% if label != 'accuracy' %}
-                            <tr>
-                                <td>{{ label }}</td>
-                                {% for metric_label, metric_value in metrics.items %}
-                                    <td>{{ metric_value|floatformat:4}}</td>
-                                {% endfor %}
-                            </tr>
-                        {% endif %}
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-    </div> <!-- flex container end -->
 </div>
-            </div>
 
 
-            <!-- Active Learning Section -->
-            <div id="active-learning-section" style="display: none;">
-                <h2 style="text-align:center;">Run Active Learning</h2>
-                <p style="text-align:center;">Start querying samples intelligently and build the model with fewer labeled examples.</p>
-                <!-- Add your active learning options and interactive tools here -->
-            </div>
+      <!-- Accuracy Results -->
+      <div id="accuracy-results" style="display:none; margin-top: 20px;">
+        <h3><strong>Accuracy:</strong> {{ accuracy }}</h3>
+
+        <!-- <p style="text-align:center; font-size: 1.05em; margin-bottom: 12px;">
+          <strong>Accuracy:</strong> {{ accuracy }}
+        </p> -->
+
+        <div class="two-col">
+          <!-- Confusion Matrix -->
+          <div>
+            <h4 style="text-align: center;">Confusion Matrix</h4>
+            <table class="nice-table compact">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Pred: Neg</th>
+                  <th>Pred: Pos</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th>Actual: Neg</th>
+                  <td>{{ confusion_matrix.0.0 }}</td>
+                  <td>{{ confusion_matrix.0.1 }}</td>
+                </tr>
+                <tr>
+                  <th>Actual: Pos</th>
+                  <td>{{ confusion_matrix.1.0 }}</td>
+                  <td>{{ confusion_matrix.1.1 }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Classification Report -->
+          <div>
+            <h4 style="text-align: center;">Classification Report</h4>
+            <table class="nice-table compact">
+              <thead>
+                <tr>
+                  <th>Label</th>
+                  <th>Precision</th>
+                  <th>Recall</th>
+                  <th>F1</th>
+                  <th>Support</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for label, metrics in report.items %}
+                  {% if label != 'accuracy' %}
+                    <tr>
+                      <td>{{ label }}</td>
+                      {% for metric_label, metric_value in metrics.items %}
+                        <td>{{ metric_value|floatformat:4 }}</td>
+                      {% endfor %}
+                    </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
-        </div>
+      </div>
+    </div>
+
+    
+    <!-- Active Learning (Tabbed) -->
+<div id="active-learning-section" style="display:none;">
+  <!-- Active Learning — Section Intro -->
+<div class="info-box" style="margin:0 auto 14px;">
+  <h3 style="margin:0 0 8px;">Active Learning Overwiew:</h3>
+  <p>
+    Active Learning lets the model choose which reviews to label next so we can learn efficiently with fewer labels.
+    You can run it in two ways:
+  </p>
+  <ul style="margin:6px 0 0 18px;">
+    <li><strong>Simulated:</strong> we use the IMDB ground-truth as a “virtual human” and plot accuracy as labels are added.</li>
+    <li><strong>Human feedback:</strong> you label a small set of reviews yourself; we then train once and show the final accuracy.</li>
+  </ul>
+  <p style="margin:8px 0 0;">
+    <strong>Key terms</strong> — <em>Strategy</em> (how we pick which review to ask), <em>Budget</em> (max #labels), and
+    <em>Batch size</em> (simulated only; labels per round before retraining).
+  </p>
+</div>
+
+
+  <!-- Tab header -->
+  <div class="center-buttons" style="display:flex;justify-content:center;gap:12px;margin-bottom:10px;">
+    <button id="btn-tab-sim" class="upload-button al-tab" aria-selected="true">Run Active Learning</button>
+    <button id="btn-tab-human2" class="upload-button al-tab" aria-selected="false">Run Active Learning (Human Feedback)</button>
+  </div>
+
+  <style>
+    .al-card { max-width: 980px; margin: 0 auto; }
+    .al-tab[aria-selected="true"] { outline: 2px solid #2a7; }
+  </style>
+
+  <!-- ====== TAB: Simulated AL ====== -->
+  <section id="tab-sim" class="al-card" hidden>
+    <h2 style="text-align:center;">Run Active Learning</h2>
+    <div class="info-box" style="max-width:900px;margin:0 auto;">
+      <p>Choose a query strategy and budget. We’ll simulate a labeler using IMDB ground truth, then plot accuracy vs. labeled samples.</p>
+    </div>
+
+    <!-- Controls -->
+    <div style="box-shadow: 0 0 10px rgba(0, 255, 255, 0.1); background-color: rgba(255, 255, 255, 0.05);padding: 30px 40px;border-radius: 12px;margin: 40px auto;">
+    <div class="al-controls" style="display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:10px;">
+      <label>Strategy:
+        <select id="al-strategy" >
+          <option value="least_confidence" style="color: black;">Least Confidence</option>
+          <option value="margin" style="color: black;">Margin</option>
+          <option value="entropy" style="color: black;">Entropy</option>
+          <option value="random" style="color: black;">Random</option>
+        </select>
+      </label>
+      <label>Budget: <input id="al-budget" type="number" value="200" min="20" step="10" style="width:90px;"></label>
+      <label>Batch Size: <input id="al-batch" type="number" value="20" min="1" step="1" style="width:80px;"></label>
+      <button id="al-run" class="upload-button">Start</button>
+      <span id="al-loading" style="display:none; margin-left:10px;">⏳ Running…</span>
+    </div>
+
+    <!-- Results -->
+    <div id="al-results" style="margin-top: 20px; display:none;">
+      <style>
+      .active-summary {
+        display: grid;
+        grid-template-columns: 4fr 1fr;
+        gap: 16px;
+        align-items: start;
+        
+      }
+      @media (max-width: 900px) {
+        .active-summary { grid-template-columns: 1fr; }
+      }
+    </style>
+      <h3 style="text-align:center;">Learning Curve (Simulated Oracle)</h3>
+      <div class = "active-summary">
+      <div class="center-narrow" style="display:flex;justify-content:center;">
+        <canvas id="al-canvas" width="820" height="320" class="canvas-plot" style="max-width:100%;"></canvas>
+      </div>
+      <!-- <div style="text-align:center;color:#ccc;font-size:12px;margin-top:6px;">x: # labeled • y: accuracy</div> -->
+      <div class="center-narrow" style="margin: 16px auto 0; max-width:540px;">
+        <table id="al-table" class="nice-table compact" style="display:none;width:100%;">
+          <thead><tr><th># Labeled</th><th>Accuracy</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <!-- ====== TAB: Human Feedback (Evaluate at End) ====== -->
+  <section id="tab-human2" class="al-card" hidden>
+    <h2 style="text-align:center;">Run Active Learning (Human Feedback)</h2>
+    <div class="info-box" style="max-width:900px;margin:0 auto;">
+      <p>You’ll label a sequence of reviews (no training between labels). When finished, we train once on your labels and show the final accuracy.</p>
+    </div>
+
+    <div style="box-shadow: 0 0 10px rgba(0, 255, 255, 0.1); background-color: rgba(255, 255, 255, 0.05);padding: 30px 40px;border-radius: 12px;margin: 40px auto;">
+
+  <div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; align-items:center;">
+    <label>Budget:
+      <input id="human-budget" type="number" min="1" value="50" style="width:90px; text-align: center;" >
+    </label>
+    <button id="btn-human-init" class="upload-button">Start Session</button>
+    <button id="btn-human-reset" class="upload-button" style="background:#f6f6f6; color:#333;">Reset</button>
+  </div>
+
+  <div id="human-status" style="text-align:center; margin-top:10px; font-size:14px; color:#fff;">
+  Status: <span id="human-status-text">Not started.</span>
+</div>
+<div id="human-remaining" style="text-align:center; margin-top:6px; font-size:13px; color:#fff; display:none;">
+  Remaining: <span id="human-left">0</span>
+</div>
+
+  <div id="human-card" style="display:none; margin-top:16px; padding:14px; border:1px solid #ddd; border-radius:10px;">
+    <div style="font-weight:600; margin-bottom:6px;">Review to label</div>
+    <div id="human-text" style="line-height:1.4; max-height:220px; overflow:auto;"></div>
+    <div style="margin-top:12px; display:flex; gap:10px; justify-content:center;">
+      <button id="btn-human-pos" class="upload-button" style="background:#2d7; color:white;">Positive</button>
+      <button id="btn-human-neg" class="upload-button" style="background:#e55; color:white;">Negative</button>
+      <button id="btn-human-next" class="upload-button" style="background:#888; color:white;">Skip / Next</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  const els = {
+    init:  document.getElementById('btn-human-init'),
+    reset: document.getElementById('btn-human-reset'),
+    status: document.getElementById('human-status-text'),
+    card: document.getElementById('human-card'),
+    text: document.getElementById('human-text'),
+    next: document.getElementById('btn-human-next'),
+    pos: document.getElementById('btn-human-pos'),
+    neg: document.getElementById('btn-human-neg'),
+    strat: document.getElementById('human-strategy'),
+    budget: document.getElementById('human-budget')
+  };
+
+  let currentItemId = null;
+
+  async function post(url, data) {
+    const form = new URLSearchParams(data || {});
+    const resp = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'X-CSRFToken': csrftoken, 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded'},
+      body: form.toString()
+    });
+    return await resp.json();
+  }
+  async function get(url) {
+    const resp = await fetch(url, {credentials: 'same-origin', headers: {'Accept':'application/json'}});
+    return await resp.json();
+  }
+
+  async function initSession() {
+    els.status.textContent = 'Initializing…';
+    const data = await post("{% url 'project2:al_human_init' %}", {
+      strategy: els.strat.value,
+      budget: els.budget.value
+    });
+    if (!data.success) { els.status.textContent = 'Error: ' + (data.error || 'init failed'); return; }
+    await fetchNext();
+  }
+
+  async function fetchNext() {
+    const data = await get("{% url 'project2:al_human_next' %}");
+    if (!data.success) { els.status.textContent = 'Error: ' + (data.error || 'next failed'); return; }
+    if (data.finished) {
+      els.status.textContent = 'Finished: budget exhausted or no more items.';
+      els.card.style.display = 'none';
+      currentItemId = null;
+      return;
+    }
+    const { id, review } = data.item;
+    currentItemId = id;
+    els.text.textContent = review;
+    els.card.style.display = 'block';
+    els.status.textContent = 'Please label the shown review.';
+  }
+
+  async function submitLabel(label) {
+    if (currentItemId == null) { els.status.textContent = 'No active item to label.'; return; }
+    const data = await post("{% url 'project2:al_human_label' %}", {
+      id: currentItemId, label: label
+    });
+    if (!data.success) { els.status.textContent = 'Error: ' + (data.error || 'label failed'); return; }
+    if (data.finished) {
+      els.status.textContent = `Done. Used budget ${data.used_budget}. Final accuracy: ${data.accuracy?.toFixed(4)}`;
+      els.card.style.display = 'none';
+      currentItemId = null;
+      return;
+    }
+    els.status.textContent = `Labeled: ${data.used_budget} / ${els.budget.value} — Current accuracy: ${data.accuracy?.toFixed(4)}. Fetching next…`;
+    await fetchNext();
+  }
+
+  async function resetSession() {
+    await post("{% url 'project2:al_human_reset' %}", {});
+    els.status.textContent = 'Session reset. Click Start Session to begin.';
+    els.card.style.display = 'none';
+    currentItemId = null;
+  }
+
+  // wire events
+  els.init?.addEventListener('click', initSession);
+  els.reset?.addEventListener('click', resetSession);
+  els.next?.addEventListener('click', fetchNext);
+  els.pos?.addEventListener('click', () => submitLabel('positive'));
+  els.neg?.addEventListener('click', () => submitLabel('negative'));
+})();
+</script>
+
+  </section>
+</div>
+    <!-- </div> -->
+
+  </div>
+</div>
 {% endblock %}
 
 {% block script %}
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const btnForm = document.getElementById("btn-show-form");
-        const btnVisual = document.getElementById("btn-show-visual");
-        const sectionForm = document.getElementById("build-classifier-section");
-        const sectionVisual = document.getElementById("active-learning-section");
+  // Sidebar switching (same interaction as before)
+  document.addEventListener("DOMContentLoaded", function () {
+    const btnForm = document.getElementById("btn-show-form");
+    const btnVisual = document.getElementById("btn-show-visual");
+    const sectionForm = document.getElementById("build-classifier-section");
+    const sectionVisual = document.getElementById("active-learning-section");
 
-        function clearActive() {
-            btnForm.classList.remove("active-tab");
-            btnVisual.classList.remove("active-tab");
-            sectionForm.style.display = "none";
-            sectionVisual.style.display = "none";
+    function clearActive() {
+      btnForm.classList.remove("active-tab");
+      btnVisual.classList.remove("active-tab");
+      sectionForm.style.display = "none";
+      sectionVisual.style.display = "none";
+    }
+
+    btnForm.addEventListener("click", function () {
+      clearActive();
+      btnForm.classList.add("active-tab");
+      sectionForm.style.display = "block";
+    });
+
+    btnVisual.addEventListener("click", function () {
+      clearActive();
+      btnVisual.classList.add("active-tab");
+      sectionVisual.style.display = "block";
+    });
+  });
+
+  // Summary/results toggle
+  document.addEventListener("DOMContentLoaded", function () {
+    const btnSummary = document.getElementById("btn-show-summary");
+    const btnResults = document.getElementById("btn-show-results");
+    const summaryDiv = document.getElementById("data-summary");
+    const resultsDiv = document.getElementById("accuracy-results");
+    const btnTrain = document.getElementById('btn-train');
+    const trainLoading = document.getElementById('train-loading');
+    const btnDownload = document.getElementById('btn-download');
+    const btnDownloadDS = document.getElementById('btn-download-ds');
+
+    btnSummary.addEventListener("click", () => {
+      summaryDiv.style.display = "block";
+      resultsDiv.style.display = "none";
+    });
+
+    btnResults.addEventListener("click", () => {
+      summaryDiv.style.display = "none";
+      resultsDiv.style.display = "block";
+    });
+
+    const trainUrl = document.getElementById('btn-train')
+                   ?.getAttribute('data-train-url') || "{% url 'project2:train' %}";
+
+    btnTrain?.addEventListener('click', async function () {
+    try {
+      btnTrain.disabled = true; trainLoading.style.display = 'inline';
+
+      const resp = await fetch("{% url 'project2:train' %}", {
+        method: 'POST',
+        // IMPORTANT: send cookies so Django can validate CSRF
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken') || '',
+          'Accept': 'application/json'
+        }
+        // no body needed
+      });
+
+      // If the request reached the server, it won't be "Failed to fetch".
+      const data = await resp.json();
+      if (!data.success) {
+        alert('Training failed: ' + (data.error || 'Unknown error'));
+      } else {
+        alert('Training complete! Reloading to show updated metrics.');
+        location.reload();
+      }
+    } catch (e) {
+      // This is where "TypeError: Failed to fetch" is caught
+      alert('Network error: ' + e + '\nCheck DevTools > Console/Network for details.');
+    } finally {
+      btnTrain.disabled = false; trainLoading.style.display = 'none';
+    }
+  });
+
+ 
+    btnDownload?.addEventListener('click', function () {
+      window.location.href = "{% url 'project2:download_model' %}";
+    });
+
+    btnDownloadDS?.addEventListener('click', function () {
+      window.location.href = "{% url 'project2:download_dataset' %}";
+    });
+
+  });
+
+  (function(){
+      const btnSim = document.getElementById('btn-tab-sim');
+      const btnHum = document.getElementById('btn-tab-human2');
+      const tabSim = document.getElementById('tab-sim');
+      const tabHum = document.getElementById('tab-human2');
+
+      function activate(which){
+        if(which==='sim'){
+          tabSim.hidden = false; tabHum.hidden = true;
+          btnSim.setAttribute('aria-selected','true'); btnHum.setAttribute('aria-selected','false');
+        }else{
+          tabSim.hidden = true; tabHum.hidden = false;
+          btnSim.setAttribute('aria-selected','false'); btnHum.setAttribute('aria-selected','true');
+        }
+      }
+      btnSim?.addEventListener('click', ()=>activate('sim'));
+      btnHum?.addEventListener('click', ()=>activate('hum'));
+      // default tab
+      activate('sim');
+    })();
+
+      // --- CSRF helper ---
+    function getCookie(name){const v=`; ${document.cookie}`;const p=v.split(`; ${name}=`);if(p.length===2) return p.pop().split(';').shift();return '';}
+    const csrftoken = getCookie('csrftoken');
+
+    // ===== Simulated AL =====
+    (function(){
+      const btn = document.getElementById('al-run');
+      const loader = document.getElementById('al-loading');
+      const resultsWrap = document.getElementById('al-results');
+      const table = document.getElementById('al-table');
+      const tbody = table?.querySelector('tbody');
+      const canvas = document.getElementById('al-canvas');
+
+      async function runAL(){
+        try{
+          btn.disabled = true; loader.style.display='inline';
+          const strategy = document.getElementById('al-strategy').value;
+          const budget = document.getElementById('al-budget').value;
+          const batch = document.getElementById('al-batch').value;
+
+          const resp = await fetch("{% url 'project2:run_al' %}", {
+            method:'POST',
+            credentials:'same-origin',
+            headers:{'X-CSRFToken': csrftoken,'Accept':'application/json','Content-Type':'application/json'},
+            body: JSON.stringify({ strategy, budget: parseInt(budget,10), batch_size: parseInt(batch,10) })
+          });
+          const data = await resp.json();
+          if(!data.success){ alert('Active Learning failed: ' + (data.error || 'Unknown error')); return; }
+
+          // data.curve = [{labeled:n, acc:float}, ...]
+          resultsWrap.style.display='block';
+          drawCurve(canvas, data.curve || []);
+          fillTable(tbody, data.curve || []);
+        }catch(e){
+          alert('Network error: ' + e);
+        }finally{
+          btn.disabled=false; loader.style.display='none';
+        }
+      }
+
+      function fillTable(tbody, curve){
+        if(!tbody) return;
+        tbody.innerHTML='';
+        (curve||[]).forEach(pt=>{
+          const tr=document.createElement('tr');
+          const tdN=document.createElement('td'); tdN.textContent = String(pt.labeled ?? pt.n ?? '');
+          const tdA=document.createElement('td'); tdA.textContent = (pt.acc ?? pt.accuracy ?? 0).toFixed(4);
+          tr.appendChild(tdN); tr.appendChild(tdA);
+          tbody.appendChild(tr);
+        });
+        table.style.display = (curve && curve.length) ? 'table' : 'none';
+      }
+
+      // Minimal canvas plot with axes & ticks
+      function drawCurve(canvas, curve){
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0,0,W,H);
+
+        // margins
+        const m = {l:60,r:20,t:15,b:40};
+        // axes
+        ctx.strokeStyle = '#333'; ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.moveTo(m.l, H-m.b); ctx.lineTo(W-m.r, H-m.b); // x
+        ctx.moveTo(m.l, H-m.b); ctx.lineTo(m.l, m.t);     // y
+        ctx.stroke();
+
+        // labels
+        ctx.fillStyle='#fff';
+ctx.font='12px sans-serif';
+ctx.textAlign='center';
+ctx.fillText('# labeled', (W-m.r+m.l)/2, H-12);
+ctx.save();
+ctx.translate(14,(H-m.b+m.t)/2);
+ctx.rotate(-Math.PI/2);
+ctx.fillText('accuracy',0,0);
+ctx.restore();
+        if(!curve || !curve.length) return;
+
+        const xs = curve.map(p=>p.labeled ?? p.n ?? 0);
+        const ys = curve.map(p=>p.acc ?? p.accuracy ?? 0);
+        const minX = 0, maxX = Math.max(...xs);
+        const minY = Math.min(0.0, Math.min(...ys)), maxY = Math.max(1.0, Math.max(...ys));
+
+        const x2px = x => m.l + (W-m.l-m.r) * ((x-minX)/(Math.max(1, maxX-minX)));
+        const y2px = y => (H-m.b) - (H-m.t-m.b) * ((y-minY)/(Math.max(1e-9, maxY-minY)));
+
+        // grid & ticks
+        ctx.strokeStyle='#ddd'; ctx.fillStyle='#fff'; ctx.lineWidth=1;
+        ctx.textAlign='center'; ctx.textBaseline='top';
+        const xticks = 5, yticks = 5;
+        for(let i=0;i<=xticks;i++){
+          const xv = minX + (i*(maxX-minX)/xticks);
+          const xpx = x2px(xv);
+          ctx.beginPath(); ctx.moveTo(xpx, H-m.b); ctx.lineTo(xpx, m.t); ctx.stroke();
+          ctx.fillText(String(Math.round(xv)), xpx, H-m.b+6);
+        }
+        ctx.textAlign='right'; ctx.textBaseline='middle';
+        for(let j=0;j<=yticks;j++){
+          const yv = minY + (j*(maxY-minY)/yticks);
+          const ypx = y2px(yv);
+          ctx.beginPath(); ctx.moveTo(m.l, ypx); ctx.lineTo(W-m.r, ypx); ctx.stroke();
+          ctx.fillText((Math.round(yv*100)/100).toFixed(2), m.l-6, ypx);
         }
 
-        btnForm.addEventListener("click", function () {
-            clearActive();
-            btnForm.classList.add("active-tab");
-            sectionForm.style.display = "block";
+        // curve
+        ctx.strokeStyle='#2a7'; ctx.lineWidth=2;
+        ctx.beginPath();
+        curve.forEach((p,i)=>{
+          const x = x2px(p.labeled ?? p.n ?? 0);
+          const y = y2px(p.acc ?? p.accuracy ?? 0);
+          if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
         });
+        ctx.stroke();
 
-        btnVisual.addEventListener("click", function () {
-            clearActive();
-            btnVisual.classList.add("active-tab");
-            sectionVisual.style.display = "block";
+        // points
+        ctx.fillStyle='#2a7';
+        curve.forEach(p=>{
+          const x = x2px(p.labeled ?? p.n ?? 0);
+          const y = y2px(p.acc ?? p.accuracy ?? 0);
+          ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
         });
-    });
+      }
 
-    document.addEventListener("DOMContentLoaded", function () {
-        const btnSummary = document.getElementById("btn-show-summary");
-        const btnResults = document.getElementById("btn-show-results");
+      btn?.addEventListener('click', runAL);
+    })();
 
-        const summaryDiv = document.getElementById("data-summary");
-        const resultsDiv = document.getElementById("accuracy-results");
+    // ===== Human-in-the-Loop =====
+    (function(){
+      function post(url, data){
+        const form = new URLSearchParams(data||{});
+        return fetch(url, {
+          method:'POST', credentials:'same-origin',
+          headers:{'X-CSRFToken': csrftoken,'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded'},
+          body: form.toString()
+        }).then(r=>r.json());
+      }
+      function get(url){
+        return fetch(url, {credentials:'same-origin', headers:{'Accept':'application/json'}}).then(r=>r.json());
+      }
 
-        btnSummary.addEventListener("click", () => {
-            summaryDiv.style.display = "block";
-            resultsDiv.style.display = "none";
+      const els = {
+        init:  document.getElementById('btn-human-init'),
+        reset: document.getElementById('btn-human-reset'),
+        status: document.getElementById('human-status-text'),
+        card: document.getElementById('human-card'),
+        text: document.getElementById('human-text'),
+        next: document.getElementById('btn-human-next'),
+        pos: document.getElementById('btn-human-pos'),
+        neg: document.getElementById('btn-human-neg'),
+        strat: document.getElementById('human-strategy'),
+        budget: document.getElementById('human-budget'),
+        remainWrap: document.getElementById('human-remaining'),
+        remainNum: document.getElementById('human-left')
+      };
+
+      let currentItemId = null;
+      let used = 0;
+      let totalBudget = 0;
+
+      async function initSession() {
+  els.status.textContent = 'Initializing…';
+  used = 0;
+  totalBudget = parseInt(els.budget.value || '0', 10) || 0;
+
+  // Build POST payload; include strategy only if the element exists
+  const payload = { budget: totalBudget };
+  if (els.strat && els.strat.value) payload.strategy = els.strat.value;
+
+  const data = await post("{% url 'project2:al_human_init' %}", payload);
+  if (!data.success) { els.status.textContent = 'Error: ' + (data.error || 'init failed'); return; }
+
+  // show initial remaining counter
+  els.remainWrap.style.display = 'block';
+  els.remainNum.textContent = String(Math.max(totalBudget - used, 0));
+
+  await fetchNext();
+}
+
+
+      async function fetchNext(){
+        const data = await get("{% url 'project2:al_human_next' %}");
+        if(!data.success){ els.status.textContent = 'Error: ' + (data.error||'next failed'); return; }
+        if(data.finished){ els.status.textContent = 'Finished: budget exhausted or no more items.'; els.card.style.display='none'; currentItemId=null; return; }
+        const { id, review } = data.item;
+        currentItemId = id;
+        els.text.textContent = review;
+        els.card.style.display='block';
+        els.status.textContent = 'Please label the shown review.';
+        els.remainWrap.style.display = 'block';
+        els.remainNum.textContent = String(Math.max(totalBudget - used, 0));
+
+      }
+
+      async function submitLabel(label) {
+        if (currentItemId == null) { els.status.textContent = 'No active item to label.'; return; }
+        const data = await post("{% url 'project2:al_human_label' %}", {
+          id: currentItemId, label: label
         });
+        if (!data.success) { els.status.textContent = 'Error: ' + (data.error || 'label failed'); return; }
 
-        btnResults.addEventListener("click", () => {
-            summaryDiv.style.display = "none";
-            resultsDiv.style.display = "block";
-        });
-    });
+        // Update usage & remaining
+        used = data.used_budget || (used + 1);
+        const left = Math.max(totalBudget - used, 0);
+        els.remainWrap.style.display = 'block';
+        els.remainNum.textContent = String(left);
+
+        if (data.finished) {
+          els.status.textContent = `Done. Used budget ${used}. Final accuracy: ${data.accuracy?.toFixed?.(4) ?? data.accuracy ?? '—'}`;
+          els.card.style.display = 'none';
+          currentItemId = null;
+          return;
+        }
+        els.status.textContent = `Saved. ${left} remaining… Fetching next…`;
+        await fetchNext();
+      }
+
+
+      async function resetSession(){
+        await post("{% url 'project2:al_human_reset' %}", {});
+        els.status.textContent='Session reset. Click Start Session to begin.';
+        els.card.style.display='none'; currentItemId=null;
+      }
+
+      els.init?.addEventListener('click', initSession);
+      els.reset?.addEventListener('click', resetSession);
+      els.next?.addEventListener('click', fetchNext);
+      els.pos?.addEventListener('click', ()=>submitLabel('positive'));
+      els.neg?.addEventListener('click', ()=>submitLabel('negative'));
+    })();  
 </script>
 {% endblock %}

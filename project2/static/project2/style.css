@@ -1,3 +1,104 @@
+
+/* Active tab highlight (same hue as P1 buttons) */
 .active-tab {
-    background-color: #00cccc !important;
+  background-color: #00ffff !important;
+  color: #000 !important;
 }
+
+/* Ensure the main content panel is not black (match P1 translucent card) */
+.dashboard-content {
+  flex: 1;
+  padding: 30px 40px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 0 10px 10px 0;
+  min-height: 500px;
+}
+
+/* Compact two-column area for confusion matrix + report */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+/* Centered narrow wrapper for canvas and tables (concise) */
+.center-narrow {
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+/* Canvas look consistent with P1 cards */
+.canvas-plot {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: rgba(17, 17, 17, 0.35);
+  border: 1px solid rgba(0, 255, 255, 0.35);
+  border-radius: 8px;
+  padding: 6px;
+}
+summary-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: center;
+      }
+      @media (max-width: 900px) {
+        .summary-grid { grid-template-columns: 1fr; }
+      }
+      
+      .nice-table {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background: #fff; /* match your theme */
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        padding: 14px 18px;
+        margin: 0 auto;
+        max-width: 450px;   /* prevent sample table from getting too wide */
+      }
+      .nice-table h3 {
+        margin: 0 0 12px 0;
+        font-size: 18px;
+        font-weight: 600;
+        text-align: center;
+      }
+      .nice-table table {
+        border-collapse: collapse;
+        margin: 0 auto;
+      }
+      .nice-table th, .nice-table td {
+        border: 1px solid #e0e0e0;
+        padding: 6px 10px;
+        text-align: center;
+      }
+      .nice-table th {
+        background-color: #f7f7f7;
+        font-weight: 600;
+      }
+
+
+/* Controls row mirrors P1 button aesthetics */
+.al-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 6px;
+}
+.al-controls label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.al-controls input, .al-controls select {
+  padding: 8px 10px;
+  background-color: rgba(255,255,255,0.07);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+}
+

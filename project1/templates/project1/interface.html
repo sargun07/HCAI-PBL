@@ -2,377 +2,380 @@
 {% load static %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'project1/style.css' %}">
+<link rel="stylesheet" href="{% static 'project1/style.css' %}">
 {% endblock %}
 
 {% block content %}
 <h1 class="page-title">Project 1: Supervised Learning Interface</h1>
 
-<!-- Project Navigation -->
 <div class="project-nav">
-    <a href="{% url 'project1:index' %}" class="project-link">Project 1</a>
-    <a href="{% url 'project2:index' %}" class="project-link">Project 2</a>
-    <a href="{% url 'project3:index' %}" class="project-link">Project 3</a>
-    <a href="{% url 'project4:index' %}" class="project-link">Project 4</a>
-    <a href="{% url 'project5:index' %}" class="project-link">Project 5</a>
+  <a href="{% url 'project1:index' %}" class="project-link">Project 1</a>
+  <a href="{% url 'project2:index' %}" class="project-link">Project 2</a>
+  <a href="{% url 'project3:index' %}" class="project-link">Project 3</a>
+  <a href="{% url 'project4:index' %}" class="project-link">Project 4</a>
+  <a href="{% url 'project5:index' %}" class="project-link">Project 5</a>
 </div>
 
-<!-- Main Dashboard Layout -->
 <div class="dashboard-container">
-    <!-- Sidebar -->
-    <div class="sidebar-nav" id="sidebar-nav" style="display: none;">
-        <button class="side-button" id="btn-show-form">Upload Form</button>
-        <button class="side-button" id="btn-show-visual">Data Visualization</button>
-        <button class="side-button" id="btn-show-ml">ML Model</button>
+  <!-- Sidebar -->
+  <div class="sidebar-nav" id="sidebar-nav" style="display:none;">
+    <button class="side-button" id="btn-show-form">Upload Form</button>
+    <button class="side-button" id="btn-show-visual">Data Visualization</button>
+    <button class="side-button" id="btn-show-ml">ML Model</button>
+  </div>
+
+  <!-- Main content -->
+  <div class="dashboard-content">
+    <!-- Upload -->
+    <div class="upload-section" id="upload-section">
+      <h2>Upload CSV Dataset</h2>
+      <!-- <p class="form-note">Upload your dataset and optionally specify the target column (if it's not the last column).</p> -->
+      <div class="info-box">
+        <p>Upload your dataset here. The last column will be used as the target by default, unless you specify another one.</p>
+      </div>
+      <form method="post" enctype="multipart/form-data" id="csv-upload-form" class="upload-form">
+        {% csrf_token %}
+        <div class="form-row">
+          <label for="file">Select a CSV file:</label>
+          {{ form.file }}
+        </div>
+        <div class="form-row">
+          <label for="target-column">Target Column (name or index):</label>
+          <input type="text" id="target-column" name="target_column" placeholder="Leave empty if it's the last column">
+        </div>
+        <div class="form-row center-buttons">
+          <button type="submit" class="upload-button">Upload</button>
+          <button type="button" id="loading-button" class="upload-button" style="display:none;" disabled>Loading...</button>
+        </div>
+      </form>
+      <div id="upload-result" class="form-note"></div>
     </div>
 
-    <!-- Right Content -->
-    <div class="dashboard-content">
-        <!-- Upload Section -->
-        <div class="upload-section" id="upload-section">
-            <h2>Upload CSV Dataset</h2>
-            <p class="form-note">Upload your dataset and optionally specify the target column (if it's not the last column).</p>
+    <!-- Results -->
+    <div id="results-section" style="display:none;">
+    <h3>Data Visualization</h3>
+      <div class="info-box">
+        <p>💡 This section shows dataset summary statistics and visualizations. Use the buttons to switch between different plots.</p>
+      </div>
 
-            <form method="post" enctype="multipart/form-data" id="csv-upload-form" class="upload-form">
-                {% csrf_token %}
-                <div class="form-row">
-                    <label for="file">Select a CSV file:</label>
-                    {{ form.file }}
-                </div>
-
-                <div class="form-row">
-                    <label for="target-column">Target Column (name or index):</label>
-                    <input type="text" id="target-column" name="target_column" placeholder="Leave empty if it's the last column">
-                </div>
-
-                <div class="form-row center-buttons">
-                    <button type="submit" class="upload-button">Upload</button>
-                    <button type="button" id="loading-button" class="upload-button" style="display: none;" disabled>Loading...</button>
-                </div>
-            </form>
-            <div id="upload-result" class="form-note"></div>
+      <div class="visual-flex-container" style="display:flex; width: fit-content;">
+        <div class="visual-left" style="flex:1; background-color: rgba(255, 255, 255, 0.05);padding: 20px;border-radius: 10px;box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);margin-right:10px;">
+          <div class="alert-box" id="model-recommendation"></div>
+          <div class="summary-box">
+            <h3>Dataset Summary</h3>
+            <ul id="dataset-summary-list"></ul>
+          </div>
         </div>
-
-        <!-- Results Section -->
-        <div id="results-section" style="display: none;">
-            <div class="visual-flex-container">
-                <!-- Recommendation + Summary -->
-                <div class="visual-left">
-                    <div class="alert-box" id="model-recommendation"></div>
-                    <div class="summary-box">
-                        <h3>Dataset Summary</h3>
-                        <ul id="dataset-summary-list"></ul>
-                    </div>
-                </div>
-
-                <!-- Plots -->
-                <div class="visual-right">
-                    <h3 style="text-align:center;">Visualizations</h3>
-                    <div id="plot-buttons" class="plot-button-container"></div>
-                    <div id="active-plot" class="active-plot"></div>
-                </div>
-            </div>
+        <div class="visual-right" style="flex:2;width:1000px;">
+          <h3 style="text-align:center;">Visualizations</h3>
+          <div id="plot-buttons" class="plot-button-container"></div>
+          <div id="active-plot" class="active-plot"></div>
         </div>
-
-        <!-- ML Section -->
-        <div id="ml-section" style="display: none;">
-            <h3>ML Model Implementation</h3>
-
-            <form id="ml-form" class="ml-form">
-                <div class="form-row">
-                    <label for="ml-type">Select ML Type:</label>
-                    <select id="ml-type" name="ml_type">
-                        <option value="classification">Classification</option>
-                        <option value="regression">Regression</option>
-                    </select>
-                </div>
-
-                <div class="form-row">
-                    <label for="ml-model">Select Model:</label>
-                    <select id="ml-model" name="ml_model"></select>
-                </div>
-
-                <div class="form-row">
-                    <label for="train-split">Train-Test Split (%):</label>
-                    <input type="number" id="train-split" name="train_split" min="1" max="99" value="80">
-                </div>
-
-                <div class="form-row" id="hyperparameter-container">
-                    <h4>Select Hyperparameters</h4>
-                    <div id="hyperparam-form" class="ml-form"></div>
-                </div>
-
-                <div class="form-row">
-                    <label for="scoring-metric">Scoring Metric:</label>
-                    <select id="scoring-metric" name="scoring_metric"></select>
-                </div>
-
-                <div class="form-row">
-                    <button type="button" class="upload-button" id="btn-train-model">Train Model</button>
-                </div>
-            </form>
-
-            <div class="model-results" id="ml-results" style="display: none;">
-                <h4>Model Results</h4>
-                <p><strong>Accuracy / Score:</strong> <span id="model-score"></span></p>
-                <div id="model-plot" style="margin-top: 20px;"></div>
-
-                <a id="download-model-link" href="#" download style="display:none; margin-top: 20px;" class="upload-button">Download Trained Model</a>
-
-                <div class="console-box" style="margin-top: 30px;">
-                    <h4>Make a Prediction</h4>
-                    <form id="predict-form">
-                        <textarea id="predict-input" rows="3" placeholder="Enter input values (e.g., 4.5, 2.3, 1.4, 0.2)"></textarea>
-                        <button type="submit" class="upload-button">Predict</button>
-                    </form>
-                    <div id="predict-output" class="console-output"></div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+
+    <!-- ML -->
+    <div id="ml-section" style="display:none;">
+      <h3>ML Model Implementation</h3>
+      <div class="info-box">
+        <p>💡 In this section you can choose a machine learning model, set hyperparameters, and train it. The system will evaluate the model and show results on the right.</p>
+      </div>
+
+      <div class="visual-flex-container">
+        <!-- Left controls -->
+        <div class="visual-left">
+          <form id="ml-form" class="ml-form">
+            <div class="form-grid-2">
+              <div class="form-row">
+                <label for="ml-type">Select ML Type:</label>
+                <select id="ml-type" name="ml_type" style="color: #00CCCC;">
+                  <option value="classification" selected>Classification</option>
+                  <option value="regression">Regression</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="ml-model">Select Model:</label>
+                <select id="ml-model" name="ml_model" style="color: #00CCCC;"></select>
+              </div>
+              <div class="form-row">
+                <label for="train-split" >Train-Test Split (%):</label>
+                <input type="number" id="train-split" name="train_split" min="1" max="99" value="80" style="color: #00CCCC;align-items: center; border-radius: 3px; padding: 2px;">
+              </div>
+              <div class="form-row">
+                <label for="scoring-metric">Scoring Metric:</label>
+                <select id="scoring-metric" name="scoring_metric" style="color: #00CCCC;"></select>
+              </div>
+            </div>
+
+            <!-- <h4>Hyperparameters</h4> -->
+            <div id="hyperparam-form" class="form-grid-2"></div>
+
+            <div class="form-row">
+              <button type="button" class="upload-button" id="btn-train-model">Train Model</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Right results -->
+        <div class="visual-right">
+          <div class="model-results" id="ml-results" style="display:none;">
+            <h4>Model Results</h4>
+            <p><strong>Score:</strong> <span id="model-score"></span></p>
+            <div id="model-plot" style="margin-top: 20px;"></div>
+
+            <a id="download-model-link" href="#" download style="display:none; margin-top:20px;" class="upload-button">Download Trained Model</a>
+
+            <div class="console-box" style="margin-top: 30px;">
+              <h4>Make a Prediction</h4>
+              <p>💡 Enter comma-separated values for your features (same order as in your dataset) and the trained model will predict the output.</p>
+              <form id="predict-form">
+                <textarea id="predict-input" rows="3" placeholder="e.g., 4.5, 2.3, 1.4, 0.2"></textarea>
+                <button type="submit" class="upload-button">Predict</button>
+              </form>
+              <div id="predict-output" class="console-output"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 {% endblock %}
-
 
 {% block script %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const form = document.getElementById("csv-upload-form");
-    const uploadSection = document.getElementById("upload-section");
-    const loadingButton = document.getElementById("loading-button");
-    const uploadButton = form.querySelector(".upload-button");
-    const result = document.getElementById("upload-result");
+  /* ---------- Upload / Results wiring ---------- */
+  const form = document.getElementById("csv-upload-form");
+  const uploadSection = document.getElementById("upload-section");
+  const loadingButton = document.getElementById("loading-button");
+  const uploadButton = form.querySelector(".upload-button");
+  const result = document.getElementById("upload-result");
 
-    const resultsSection = document.getElementById("results-section");
-    const recommendationBox = document.getElementById("model-recommendation");
-    const summaryList = document.getElementById("dataset-summary-list");
-    const plotButtons = document.getElementById("plot-buttons");
-    const activePlot = document.getElementById("active-plot");
+  const resultsSection = document.getElementById("results-section");
+  const recommendationBox = document.getElementById("model-recommendation");
+  const summaryList = document.getElementById("dataset-summary-list");
+  const plotButtons = document.getElementById("plot-buttons");
+  const activePlot = document.getElementById("active-plot");
 
-    const mlSection = document.getElementById("ml-section");
+  const mlSection = document.getElementById("ml-section");
+  function hideAllSections() {
+    uploadSection.style.display = "none";
+    resultsSection.style.display = "none";
+    mlSection.style.display = "none";
+  }
 
-    const mlTypeSelect = document.getElementById("ml-type");
-    const mlModelSelect = document.getElementById("ml-model");
-    const scoringMetricSelect = document.getElementById("scoring-metric");
+  document.getElementById("btn-show-form").addEventListener("click", () => { hideAllSections(); uploadSection.style.display = "block"; });
+  document.getElementById("btn-show-visual").addEventListener("click", () => { hideAllSections(); resultsSection.style.display = "block"; });
+  document.getElementById("btn-show-ml").addEventListener("click", () => { hideAllSections(); mlSection.style.display = "block"; });
 
-    const btnSelectParams = document.getElementById("btn-select-hyperparams");
-    const paramSection = document.getElementById("hyperparam-form-section");
-    const paramForm = document.getElementById("hyperparam-form");
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    uploadButton.style.display = "none";
+    loadingButton.style.display = "inline-block";
 
-    const modelHyperparams = {
-        logistic_regression: { C: 1.0, max_iter: 100, penalty: "l2" },
-        svm: { C: 1.0, max_iter: 1000 },
-        random_forest_classifier: { n_estimators: 100, max_depth: 10, criterion: "gini" },
-        linear_regression: { fit_intercept: true, normalize: false },
-        random_forest_regressor: { n_estimators: 100, max_depth: 10 },
-        gradient_boosting_regressor: { n_estimators: 100, learning_rate: 0.1, max_depth: 3 }
-    };
+    const formData = new FormData(form);
+    fetch("", {
+      method: "POST",
+      headers: { "X-CSRFToken": form.querySelector('[name=csrfmiddlewaretoken]').value },
+      body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+      uploadButton.style.display = "inline-block";
+      loadingButton.style.display = "none";
+      if (!data.success) {
+        result.textContent = data.error; result.style.color = "red"; return;
+      }
+      hideAllSections();
+      resultsSection.style.display = "block";
+      document.getElementById("sidebar-nav").style.display = "flex";
 
-    const classificationModels = [
-        { value: "logistic_regression", text: "Logistic Regression" },
-        { value: "svm", text: "Support Vector Machine (SVM)" },
-        { value: "random_forest_classifier", text: "Random Forest Classifier" }
-    ];
+      recommendationBox.textContent = "Recommended ML Strategy: " + data.recommendation;
+      summaryList.innerHTML = "";
+      data.summary.forEach(item => {
+        const li = document.createElement("li"); li.innerHTML = item; summaryList.appendChild(li);
+      });
 
-    const regressionModels = [
-        { value: "linear_regression", text: "Linear Regression" },
-        { value: "random_forest_regressor", text: "Random Forest Regressor" },
-        { value: "gradient_boosting_regressor", text: "Gradient Boosting Regressor" }
-    ];
-
-    const classificationMetrics = [
-        { value: "accuracy", text: "Accuracy" },
-        { value: "f1", text: "F1 Score" },
-        { value: "precision", text: "Precision" },
-        { value: "recall", text: "Recall" }
-    ];
-
-    const regressionMetrics = [
-        { value: "r2", text: "R² Score" },
-        { value: "neg_mean_squared_error", text: "Negative MSE" },
-        { value: "neg_mean_absolute_error", text: "Negative MAE" }
-    ];
-
-    function populateModelOptions(models) {
-        mlModelSelect.innerHTML = "";
-        models.forEach(model => {
-            const option = document.createElement("option");
-            option.value = model.value;
-            option.textContent = model.text;
-            mlModelSelect.appendChild(option);
+      plotButtons.innerHTML = "";
+      activePlot.innerHTML = "";
+      let first = true;
+      for (const [title, imageStr] of Object.entries(data.plots)) {
+        const btn = document.createElement("button");
+        btn.className = "plot-toggle-button";
+        btn.textContent = title;
+        btn.addEventListener("click", () => {
+          activePlot.innerHTML = `<img src="data:image/png;base64,${imageStr}" alt="${title}" />`;
         });
-    }
-
-    function populateMetricOptions(type) {
-        scoringMetricSelect.innerHTML = "";
-        const options = type === "classification" ? classificationMetrics : regressionMetrics;
-        options.forEach(metric => {
-            const opt = document.createElement("option");
-            opt.value = metric.value;
-            opt.textContent = metric.text;
-            scoringMetricSelect.appendChild(opt);
-        });
-    }
-
-    function hideAllSections() {
-        uploadSection.style.display = "none";
-        resultsSection.style.display = "none";
-        mlSection.style.display = "none";
-    }
-
-    document.getElementById("btn-show-form").addEventListener("click", () => {
-        hideAllSections();
-        uploadSection.style.display = "block";
-    });
-
-    document.getElementById("btn-show-visual").addEventListener("click", () => {
-        hideAllSections();
-        resultsSection.style.display = "block";
-    });
-
-    document.getElementById("btn-show-ml").addEventListener("click", () => {
-        hideAllSections();
-        mlSection.style.display = "block";
-    });
-
-    form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        uploadButton.style.display = "none";
-        loadingButton.style.display = "inline-block";
-
-        const formData = new FormData(form);
-
-        fetch("", {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": form.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            uploadButton.style.display = "inline-block";
-            loadingButton.style.display = "none";
-
-            if (data.success) {
-                hideAllSections();
-                resultsSection.style.display = "block";
-                document.getElementById("sidebar-nav").style.display = "flex";
-
-                recommendationBox.textContent = "Recommended ML Strategy: " + data.recommendation;
-
-                summaryList.innerHTML = "";
-                data.summary.forEach(item => {
-                    const li = document.createElement("li");
-                    li.innerHTML = item;
-                    summaryList.appendChild(li);
-                });
-
-                plotButtons.innerHTML = "";
-                activePlot.innerHTML = "";
-                let first = true;
-
-                for (const [title, imageStr] of Object.entries(data.plots)) {
-                    const button = document.createElement("button");
-                    button.className = "plot-toggle-button";
-                    button.textContent = title;
-                    button.addEventListener("click", () => {
-                        activePlot.innerHTML = `<img src="data:image/png;base64,${imageStr}" alt="${title}" style="max-width:100%; border: 1px solid #ccc; border-radius: 8px;" />`;
-                    });
-                    plotButtons.appendChild(button);
-                    if (first) {
-                        activePlot.innerHTML = `<img src="data:image/png;base64,${imageStr}" alt="${title}" style="max-width:100%; border: 1px solid #ccc; border-radius: 8px;" />`;
-                        first = false;
-                    }
-                }
-            } else {
-                result.textContent = data.error;
-                result.style.color = "red";
-            }
-        })
-        .catch(error => {
-            result.textContent = "Upload failed.";
-            result.style.color = "red";
-            console.error("Error:", error);
-            uploadButton.style.display = "inline-block";
-            loadingButton.style.display = "none";
-        });
-    });
-
-    btnSelectParams.addEventListener("click", function () {
-        const selectedModel = mlModelSelect.value;
-        const params = modelHyperparams[selectedModel];
-
-        if (!params) {
-            alert("No hyperparameters found for selected model.");
-            return;
+        plotButtons.appendChild(btn);
+        if (first) {
+          activePlot.innerHTML = `<img src="data:image/png;base64,${imageStr}" alt="${title}" />`;
+          first = false;
         }
+      }
+    })
+    .catch(err => {
+      result.textContent = "Upload failed.";
+      result.style.color = "red";
+      uploadButton.style.display = "inline-block";
+      loadingButton.style.display = "none";
+      console.error(err);
+    });
+  });
 
-        paramSection.style.display = "block";
-        paramForm.innerHTML = "";
+  /* ---------- ML section wiring ---------- */
+  const mlTypeSelect = document.getElementById("ml-type");
+  const mlModelSelect = document.getElementById("ml-model");
+  const scoringMetricSelect = document.getElementById("scoring-metric");
+  const paramForm = document.getElementById("hyperparam-form");
 
-        for (const [key, value] of Object.entries(params)) {
-            const label = document.createElement("label");
-            label.textContent = key;
-            const input = document.createElement("input");
-            input.type = "text";
-            input.name = key;
-            input.value = value;
+  /* Model options & defaults */
+  const modelHyperparams = {
+    logistic_regression: { C: 1.0, max_iter: 100, penalty: "l2" },
+    svm: { C: 1.0, max_iter: 1000 },
+    random_forest_classifier: { n_estimators: 100, max_depth: 10, criterion: "gini" },
+    linear_regression: { fit_intercept: true },
+    random_forest_regressor: { n_estimators: 100, max_depth: 10 },
+    gradient_boosting_regressor: { n_estimators: 100, learning_rate: 0.1, max_depth: 3 }
+  };
 
-            const wrapper = document.createElement("div");
-            wrapper.className = "form-row";
-            wrapper.appendChild(label);
-            wrapper.appendChild(input);
-            paramForm.appendChild(wrapper);
-        }
+  const classificationModels = [
+    { value: "logistic_regression", text: "Logistic Regression" },
+    { value: "svm", text: "Support Vector Machine (SVM)" },
+    { value: "random_forest_classifier", text: "Random Forest Classifier" }
+  ];
+  const regressionModels = [
+    { value: "linear_regression", text: "Linear Regression" },
+    { value: "random_forest_regressor", text: "Random Forest Regressor" },
+    { value: "gradient_boosting_regressor", text: "Gradient Boosting Regressor" }
+  ];
+
+  const classificationMetrics = [
+    { value: "accuracy", text: "Accuracy" },
+    { value: "f1", text: "F1 Score" },
+    { value: "precision", text: "Precision" },
+    { value: "recall", text: "Recall" }
+  ];
+  const regressionMetrics = [
+    { value: "r2", text: "R² Score" },
+    { value: "neg_mean_squared_error", text: "Negative MSE" },
+    { value: "neg_mean_absolute_error", text: "Negative MAE" }
+  ];
+
+  function populateModelOptions(models) {
+    mlModelSelect.innerHTML = "";
+    models.forEach(m => {
+      const o = document.createElement("option");
+      o.value = m.value; o.textContent = m.text;
+      mlModelSelect.appendChild(o);
+    });
+  }
+  function populateMetricOptions(type) {
+    scoringMetricSelect.innerHTML = "";
+    const optSrc = type === "classification" ? classificationMetrics : regressionMetrics;
+    optSrc.forEach(m => {
+      const o = document.createElement("option");
+      o.value = m.value; o.textContent = m.text;
+      scoringMetricSelect.appendChild(o);
+    });
+  }
+  function renderHyperparamsFor(modelKey) {
+    const params = modelHyperparams[modelKey];
+    paramForm.innerHTML = "";
+    if (!params) return;
+    Object.entries(params).forEach(([k, v]) => {
+      const label = document.createElement("label");
+      label.textContent = k;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.name = k;
+      input.value = v;
+      const wrap = document.createElement("div");
+      wrap.className = "form-row";
+      wrap.appendChild(label);
+      wrap.appendChild(input);
+      paramForm.appendChild(wrap);
+    });
+  }
+
+  // Initial populate (safe defaults)
+  populateModelOptions(classificationModels);
+  populateMetricOptions(mlTypeSelect.value || "classification");
+  renderHyperparamsFor(mlModelSelect.value || "logistic_regression");
+
+  mlTypeSelect.addEventListener("change", function () {
+    if (this.value === "classification") {
+      populateModelOptions(classificationModels);
+      populateMetricOptions("classification");
+      renderHyperparamsFor("logistic_regression");
+    } else {
+      populateModelOptions(regressionModels);
+      populateMetricOptions("regression");
+      renderHyperparamsFor("linear_regression");
+    }
+  });
+  mlModelSelect.addEventListener("change", () => renderHyperparamsFor(mlModelSelect.value));
+
+  /* Train */
+  document.getElementById("btn-train-model").addEventListener("click", function () {
+    const mlType = mlTypeSelect.value;
+    const model = mlModelSelect.value;
+    const trainSplit = parseFloat(document.getElementById("train-split").value);
+    const metric = scoringMetricSelect.value;
+
+    const hyperparamInputs = document.querySelectorAll("#hyperparam-form input");
+    const hyperparams = {};
+    hyperparamInputs.forEach(input => {
+      const val = input.value;
+      if (val === "true" || val === "false") {
+        hyperparams[input.name] = (val === "true");
+      } else if (!isNaN(val) && val.trim() !== "") {
+        hyperparams[input.name] = parseFloat(val);
+      } else {
+        hyperparams[input.name] = val;
+      }
     });
 
-    // Handle training submission
-    document.getElementById("btn-train-model").addEventListener("click", function () {
-        const mlType = mlTypeSelect.value;
-        const model = mlModelSelect.value;
-        const trainSplit = parseFloat(document.getElementById("train-split").value);
-        const metric = scoringMetricSelect.value;
+    fetch("{% url 'project1:train_model' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ml_type: mlType,
+        model: model,
+        hyperparameters: hyperparams,
+        train_split: trainSplit,
+        scoring_metric: metric
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) { alert(data.error); return; }
+      document.getElementById("ml-results").style.display = "block";
+      document.getElementById("model-score").textContent = data.score;
+      document.getElementById("model-plot").innerHTML =
+        `<img src="data:image/png;base64,${data.plot}" alt="model-plot" />`;
+      const dl = document.getElementById("download-model-link");
+      dl.href = data.model_path; dl.style.display = "inline-block";
+    })
+    .catch(err => console.error("Error training model:", err));
+  });
 
-        const hyperparamInputs = document.querySelectorAll("#hyperparam-form input");
-        const hyperparams = {};
-        hyperparamInputs.forEach(input => {
-            hyperparams[input.name] = isNaN(input.value) ? input.value : parseFloat(input.value);
-        });
-
-        fetch("/project1/train_model/", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                ml_type: mlType,
-                model: model,
-                hyperparameters: hyperparams,
-                train_split: trainSplit,
-                scoring_metric: metric
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log("Training result:", data);
-        })
-        .catch(error => console.error("Error training model:", error));
+  /* Predict */
+  document.getElementById("predict-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const raw = document.getElementById("predict-input").value;
+    fetch("{% url 'project1:predict' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ values: raw })
+    })
+    .then(r => r.json())
+    .then(data => {
+      const out = document.getElementById("predict-output");
+      out.textContent = data.success ? `Prediction: ${data.prediction}` : `Error: ${data.error}`;
     });
-
-    // Initial population of models and scoring
-    populateModelOptions(classificationModels);
-    populateMetricOptions(mlTypeSelect.value);
-
-    mlTypeSelect.addEventListener("change", function () {
-        if (this.value === "classification") {
-            populateModelOptions(classificationModels);
-        } else {
-            populateModelOptions(regressionModels);
-        }
-        populateMetricOptions(this.value);
-    });
+  });
 });
 </script>
-
 {% endblock %}
