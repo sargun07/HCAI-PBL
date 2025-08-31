@@ -1,3 +1,10 @@
+# Ignore specific large CSVs
+media/project2/imdb_dataset_preprocessed.csv
+media/project2/IMDB Dataset.csv
+media/imdb_dataset_preprocessed.csv
+
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
