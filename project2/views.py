@@ -189,6 +189,9 @@ def preprocess_dataset(request):
         loader.preprocess()
         loader.save_preprocessed_data('imdb_dataset_preprocessed.csv')
         return JsonResponse({"success": True, "rows": len(df)})
+    except RuntimeError as e:
+        # typically missing NLTK data
+        return JsonResponse({"success": False, "error": f"{e}"}, status=500)
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 

@@ -6,7 +6,18 @@
   <link rel="stylesheet" href="{% static 'project1/style.css' %}">
   <link rel="stylesheet" href="{% static 'project2/style.css' %}">
   <style>
-    
+    spinner {
+  width: 18px; height: 18px;
+  border: 3px solid rgba(0,0,0,0.15);
+  border-top-color: rgba(0,0,0,0.6);
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: middle;
+  animation: spin 0.8s linear infinite;
+  margin-left: 8px;
+}
+.status-text { margin-left: 8px; font-size: 0.95rem; opacity: 0.8; }
+@keyframes spin { to { transform: rotate(360deg); } }
   </style>
 {% endblock %}
 
@@ -42,7 +53,7 @@
       which makes them a good fit for Active Learning.
     </p>
     <p>
-      <h3><u>please click on train button before using the app</u> <i>(it will take few minutes)</i></h3>
+      <h3><u>please click on preprocess dataset button before using the app</u> <i>(it will take few minutes)</i></h3>
 
     </p>
   </div>
@@ -52,7 +63,9 @@
         <button id="btn-show-results" class="upload-button">Show Accuracy Results</button>
         <button id="btn-train" class="upload-button">Train</button>
         <span id="train-loading" style="display:none; margin-left:10px;">⏳ Training...</span>
-        <!-- <button id="btn-preprocess" class="upload-button">Preprocess Dataset</button> -->
+        <button id="btn-preprocess" class="upload-button">Preprocess Dataset</button>
+        <span id="preprocess-spin" class="spinner" aria-live="polite" aria-busy="true" hidden></span>
+<span id="preprocess-status" class="status-text" role="status"></span>
         <button id="btn-download" class="upload-button" style="margin-left: 12px;">
         Download Model
         </button>
@@ -419,6 +432,70 @@
 
 {% block script %}
 <script>
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+}
+
+// Spinner show/hide functions
+function showPreprocessSpinner(msg = "Preprocessing…") {
+  document.getElementById('preprocess-spin')?.removeAttribute('hidden');
+  const btn = document.getElementById('btn-preprocess');
+  if (btn) { 
+    btn.disabled = true; 
+    btn.dataset._orig = btn.textContent; 
+    btn.textContent = "Working…"; 
+  }
+  const s = document.getElementById('preprocess-status');
+  if (s) s.textContent = msg;
+}
+
+function hidePreprocessSpinner(msg = "") {
+  document.getElementById('preprocess-spin')?.setAttribute('hidden','');
+  const btn = document.getElementById('btn-preprocess');
+  if (btn) { 
+    btn.disabled = false; 
+    btn.textContent = btn.dataset._orig || "Preprocess"; 
+  }
+  const s = document.getElementById('preprocess-status');
+  if (s) s.textContent = msg;
+}
+
+// Attach click event after defining functions
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById('btn-preprocess')?.addEventListener('click', async () => {
+    showPreprocessSpinner();
+
+    try {
+      const resp = await fetch("{% url 'project2:preprocess_dataset' %}", {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken') || '',
+          'Accept': 'application/json'
+        }
+      });
+
+      let data;
+      try { data = await resp.json(); } catch { data = { error: `HTTP ${resp.status}` }; }
+
+      if (!resp.ok || !data.success) {
+        hidePreprocessSpinner("Failed.");
+        alert('Preprocess failed: ' + (data.error || `HTTP ${resp.status}`));
+        return;
+      }
+
+      hidePreprocessSpinner(`Done (${data.rows} rows).`);
+    } catch (e) {
+      hidePreprocessSpinner("Network error.");
+      alert('Network error while preprocessing: ' + e);
+    }
+  });
+});
+</script>
+
+<script>
   // Sidebar switching (same interaction as before)
   document.addEventListener("DOMContentLoaded", function () {
     const btnForm = document.getElementById("btn-show-form");
@@ -446,15 +523,9 @@
     });
   });
 
-document.getElementById('btn-preprocess')?.addEventListener('click', async ()=>{
-  const resp = await fetch("{% url 'project2:preprocess_dataset' %}", {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'X-CSRFToken': getCookie('csrftoken') }
-  });
-  const data = await resp.json();
-  alert(data.success ? `Preprocessed ${data.rows} rows` : `Error: ${data.error}`);
-});
+
+
+
   // Summary/results toggle
   document.addEventListener("DOMContentLoaded", function () {
     const btnSummary = document.getElementById("btn-show-summary");
@@ -475,6 +546,7 @@ document.getElementById('btn-preprocess')?.addEventListener('click', async ()=>{
       summaryDiv.style.display = "none";
       resultsDiv.style.display = "block";
     });
+
 
     const trainUrl = document.getElementById('btn-train')
                    ?.getAttribute('data-train-url') || "{% url 'project2:train' %}";
