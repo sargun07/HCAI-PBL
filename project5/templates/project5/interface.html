@@ -415,9 +415,9 @@
   const abAria = byId('ab-aria');
   const prefsProgress = byId('prefs-progress');
 
-  const exportBtn = byId('export');
-  const importInput = byId('import');
-  const saveBtn = byId('saveToServer');
+  // const exportBtn = byId('export');
+  // const importInput = byId('import');
+  // const saveBtn = byId('saveToServer');
 
   const randomizeBtn = byId('randomize');
   const clearBtn = byId('clear');
@@ -464,9 +464,9 @@ const reinforceTip        = byId('reinforceTip');
     gridEl.addEventListener('click', onCellClick);
     randomizeBtn.addEventListener('click', ()=>onRandomize(false));
     clearBtn.addEventListener('click', ()=>{ state=emptyState(); randomizedSinceClear=false; renderGrid(); updateCounters(); gateSteps(); });
-    exportBtn.addEventListener('click', exportJSON);
-    importInput.addEventListener('change', importJSON);
-    saveBtn.addEventListener('click', saveToServer);
+    // exportBtn.addEventListener('click', exportJSON);
+    // importInput.addEventListener('change', importJSON);
+    // saveBtn.addEventListener('click', saveToServer);
 
     btnStart.addEventListener('click', startEpisodes);
     btnPause.addEventListener('click', ()=>{ paused = true; btnPause.disabled=true; btnResume.disabled=false; toast('⏸️ Paused'); });
@@ -604,7 +604,7 @@ const reinforceTip        = byId('reinforceTip');
   }
 
   function lockWorld(locked){
-    [toolEl, randWallsEl, randTrapsEl, randCheeseEl, randOrganicEl, randomizeBtn, clearBtn, exportBtn, importInput, saveBtn]
+    [toolEl, randWallsEl, randTrapsEl, randCheeseEl, randOrganicEl, randomizeBtn, clearBtn]
       .forEach(el=> el.disabled = !!locked);
     btnStart.disabled = !!locked || btnStart.disabled;
   }

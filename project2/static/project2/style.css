@@ -52,7 +52,7 @@ summary-grid {
         display: flex;
         flex-direction: column;
         align-items: center;
-        background: #fff; /* match your theme */
+        background: rgba(0,0,0,0.08); 
         border-radius: 12px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         padding: 14px 18px;
@@ -70,12 +70,12 @@ summary-grid {
         margin: 0 auto;
       }
       .nice-table th, .nice-table td {
-        border: 1px solid #e0e0e0;
+        border: 1px solid rgba(0,0,0,0.08);
         padding: 6px 10px;
         text-align: center;
       }
       .nice-table th {
-        background-color: #f7f7f7;
+        background-color: rgba(0,0,0,0.08);
         font-weight: 600;
       }
 
